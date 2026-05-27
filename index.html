@@ -85,10 +85,9 @@
         }
 
         /* ========================================================
-           原生的 Agent 樣式：固定在右下角，開啟最高級圖層加速
+           💡 智慧型雙向獨立移動舞台：用來承載 Agent，避開 SDK 偵測
            ======================================================== */
-        sv-agent {
-            display: block !important;
+        .agent-wrapper {
             position: fixed !important;
             bottom: 20px !important;
             right: 20px !important;
@@ -96,6 +95,13 @@
             height: 85px !important;
             z-index: 99999;
             will-change: transform;
+        }
+
+        /* 讓原生 Agent 在 Wrapper 容器內填滿，本體不直接吃任何 transform */
+        sv-agent {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
         }
 
         /* ========================================================
@@ -116,7 +122,7 @@
             will-change: transform;
         }
 
-        /* 💡 新增：當滑鼠抓著拖曳時，手把瞬間變全螢幕，防止滑鼠滑出界而漏抓閃爍 */
+        /* 當滑鼠抓著拖曳時，手把瞬間變全螢幕，防止滑鼠滑出界而漏抓閃爍 */
         #globalDragHandle.dragging-active {
             top: 0 !important;
             left: 0 !important;
@@ -125,7 +131,6 @@
             border-radius: 0 !important;
             bottom: auto !important;
             right: auto !important;
-            /* 保持當前的平移坐標，讓滑鼠落點不變 */
         }
     </style>
     <script
@@ -138,12 +143,14 @@
     <h1>Welcome to My Personal Website!</h1>
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
-    <sv-agent
-      id="perxonaAgent"
-      agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
-      presentationMode="bubble"
-      apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
-    ></sv-agent>
+    <div class="agent-wrapper" id="agentContainer">
+        <sv-agent
+          id="perxonaAgent"
+          agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
+          presentationMode="bubble"
+          apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
+        ></sv-agent>
+    </div>
 
     <div id="globalDragHandle"></div>
 
@@ -176,13 +183,14 @@
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
         const agentEl = document.getElementById('perxonaAgent');
+        const agentContainer = document.getElementById('agentContainer');
         const dragHandle = document.getElementById('globalDragHandle');
 
         let currentX = 0;
         let currentY = 0;
 
         // ========================================================
-        // 智慧型對齊演算法：行程視窗永遠對齊右下角原生展開面板的左側
+        // 維持原樣：智慧型行程視窗平行對齊演算法
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
@@ -201,7 +209,7 @@
         }
 
         // ========================================================
-        // 方案 B：全域點擊穿透監聽（當季小黃瓜照片）
+        // 維持原樣：方案 B 全域監聽
         // ========================================================
         window.addEventListener('click', (event) => {
             const path = event.composedPath();
@@ -224,7 +232,7 @@
 
 
         // ========================================================
-        // 🚀 全域防滑出拖曳演算機制（完美解決跨界閃爍與分身問題）
+        // 🚀 全域防滑出拖曳演算機制（移除了對原生 Agent 的樣式破壞）
         // ========================================================
         let isDragging = false;
         let startX, startY;
@@ -244,12 +252,10 @@
             startX = clientX;
             startY = clientY;
 
-            agentEl.style.transition = 'none';
+            agentContainer.style.transition = 'none';
             dragHandle.style.transition = 'none';
 
-            // 💡 關鍵突破：按下瞬間激活全螢幕防護罩，滑鼠絕對滑不出去
             dragHandle.classList.add('dragging-active');
-            // 因為樣式切換成全螢幕，要補上當前的平移量，防止手把瞬間跳位
             dragHandle.style.transform = `translate(${lastX}px, ${lastY}px)`;
             
             if(e.cancelable) e.preventDefault();
@@ -272,7 +278,6 @@
             currentX = lastX + deltaX;
             currentY = lastY + deltaY;
 
-            // 算上起點(window.innerWidth - 105)反推物理邊界，防止頭像飛出瀏覽器外
             const initialLeftBound = window.innerWidth - 105;
             const initialTopBound = window.innerHeight - 105;
 
@@ -281,9 +286,10 @@
             if (initialTopBound + currentY < 0) currentY = -initialTopBound;
             if (initialTopBound + currentY > window.innerHeight - 85) currentY = window.innerHeight - 85 - initialTopBound;
 
-            // 同步平移
             const transformStyle = `translate(${currentX}px, ${currentY}px)`;
-            agentEl.style.transform = transformStyle;
+            
+            // 💡 改動點：只平移外層 Wrapper 容器與手把，讓 sv-agent 內部保持原生態，徹底解掉 Refresh 問題！
+            agentContainer.style.transform = transformStyle;
             dragHandle.style.transform = transformStyle;
         }
 
@@ -291,11 +297,9 @@
             if (!isDragging) return;
             isDragging = false;
 
-            // 💡 釋放全螢幕防護罩，讓手把回歸 85px 圓形大小
             dragHandle.classList.remove('dragging-active');
 
             if (!hasMoved) {
-                // 單純點擊：頭貼留在原地，對話框在右下角爆開
                 dragHandle.style.pointerEvents = 'none'; 
                 
                 const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
@@ -308,15 +312,12 @@
                     dragHandle.style.pointerEvents = 'auto'; 
                 }, 250);
             } else {
-                // 拖曳結束，儲存最終平移坐標
                 lastX = currentX;
                 lastY = currentY;
-                // 回歸圓形後，手把要維持在拖完的坐標上
                 dragHandle.style.transform = `translate(${lastX}px, ${lastY}px)`;
             }
         }
 
-        // 託管監聽
         dragHandle.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', doDrag);
         window.addEventListener('mouseup', endDrag);
