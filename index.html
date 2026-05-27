@@ -36,18 +36,18 @@
             min-height: 85px;
         }
 
-        /* 隱形拖曳手把：精準覆蓋右下角小泡泡頭像 */
+        /* 💡 核心修復：改用 top/left 錨定，確保完全透明手把能精準撐開並蓋在大頭貼正上方 */
         .drag-handle {
             position: absolute;
-            bottom: 0;
-            right: 0;
+            top: 0;
+            left: 0;
             width: 85px;      
             height: 85px;     
             border-radius: 50%;
             background: rgba(0, 0, 0, 0); /* 保持完全透明 */
             border: none;
             cursor: move;     
-            z-index: 100002;  /* 提高層級，確保絕對優先被滑鼠抓到 */
+            z-index: 100002;  /* 確保絕對優先被滑鼠抓到 */
         }
 
         /* ========================================================
@@ -170,7 +170,7 @@
         const dragHandle = document.getElementById('dragHandle');
 
         // ========================================================
-        // 智慧對齊：因為點開時 Agent 被吸回右下角，所以行程視窗也固定對齊右下角
+        // 智慧對齊：與右下角展開的對話框平行並存
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
@@ -213,7 +213,7 @@
 
 
         // ========================================================
-        // 3. 全域追蹤版：流暢拖曳控制邏輯（完美解鎖任意位置移動）
+        // 3. 完美修復版拖曳邏輯
         // ========================================================
         let isDragging = false;
         let shiftX = 0;
@@ -231,7 +231,8 @@
 
         function startDrag(e) {
             const agentEl = document.getElementById('perxonaAgent');
-            if (agentEl && agentEl.offsetHeight > 150) return; // 展開時鎖定
+            // 如果面板已經打開（高度大於150px），為了防止跟對話框內容衝突，鎖定不允許拖曳
+            if (agentEl && agentEl.offsetHeight > 150) return; 
 
             isDragging = true;
             hasMoved = false;
@@ -241,11 +242,10 @@
             
             const rect = agentWrapper.getBoundingClientRect();
             
-            // 計算滑鼠按下的位置距離大頭貼左上角邊界的偏移量 (Offset)
             shiftX = clientX - rect.left;
             shiftY = clientY - rect.top;
 
-            agentWrapper.style.transition = 'none'; // 移動時移除過渡，防止頓挫感
+            agentWrapper.style.transition = 'none'; // 拖曳時關閉 transition，確保極速流暢
             
             if(e.cancelable) e.preventDefault();
             e.stopPropagation();
@@ -257,17 +257,16 @@
             const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
             const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
 
+            // 如果滑鼠有移動，標記為拖曳狀態
             hasMoved = true;
 
-            // 計算出相對於視窗 (Viewport) 的新坐標
             let newLeft = clientX - shiftX;
             let newTop = clientY - shiftY;
 
-            // 邊界限制，防止拖曳出螢幕外
+            // 邊界安全防護：防止把大頭貼丟到瀏覽器可視區域外面
             newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - 85));
             newTop = Math.max(0, Math.min(newTop, window.innerHeight - 85));
 
-            // 直接精準覆蓋 CSS 樣式，解除右下角綁定
             agentWrapper.style.right = 'auto';
             agentWrapper.style.bottom = 'auto';
             agentWrapper.style.left = newLeft + 'px';
@@ -278,35 +277,10 @@
             if (!isDragging) return;
             isDragging = false;
 
-            // 如果沒有明顯位移，視為單純的點擊事件
+            // 💡 關鍵優化：如果使用者只是點擊（位移極小），代表他想展開對話框
             if (!hasMoved) {
+                // 先將 Agent 安全吸回右下角，避免 Perxona 在奇怪的位置展開造成版面破碎
                 resetAgentToDefaultPosition();
 
-                // 點擊穿透核心
-                setTimeout(() => {
-                    dragHandle.style.pointerEvents = 'none';
-                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                    if (clickTarget) {
-                        clickTarget.click();
-                    }
-                    setTimeout(() => {
-                        dragHandle.style.pointerEvents = 'auto';
-                    }, 200);
-                }, 150); 
-                
-            }
-        }
-
-        // 修正點：將滑鼠搬移的監聽，全面升級託管給全網頁最外層 (window)，再也不會脫鉤斷掉
-        dragHandle.addEventListener('mousedown', startDrag);
-        window.addEventListener('mousemove', doDrag);
-        window.addEventListener('mouseup', endDrag);
-
-        // 手機端同步升級託管
-        dragHandle.addEventListener('touchstart', startDrag, { passive: false });
-        window.addEventListener('touchmove', doDrag, { passive: false });
-        window.addEventListener('touchend', endDrag);
-    </script>
-
-</body>
-</html>
+                // 穿透點擊手把，讓 Perxona 組件正常反應
+                setTimeout
