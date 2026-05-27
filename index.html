@@ -27,18 +27,16 @@
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
     <sv-agent
+      id="my-agent"
       agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
       presentationMode="bubble"
       apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
     ></sv-agent>
 
     <script>
-      // 確保網頁內容都載入完成後再執行
+      // 當網頁內容完全載入後才執行設定
       window.addEventListener('DOMContentLoaded', () => {
-        // 選擇網頁中的 <sv-agent> 元素
-        const widget = document.querySelector('sv-agent');
-
-        // 設定外觀與行為參數
+        // 定義你在文件上看到的配置物件
         const layoutConfig = {
           presentationMode: 'bubble',
           readyToShowPolicy: 'showWhenAssetsReady',
@@ -55,14 +53,12 @@
           },
         };
 
-        if (!widget) {
-          console.error('sv-agent widget not found in the DOM.');
-        } else if (typeof widget.updateWidgetSetting !== 'function') {
-          console.error('updateWidgetSetting method is not available on sv-agent element.');
-        } else {
-          console.log('sv-agent is ready to use.');
-          // 正式套用設定
-          widget.updateWidgetSetting(layoutConfig);
+        // 透過 ID 找到網頁上的 <sv-agent> 元件
+        const agentElement = document.getElementById('my-agent');
+        
+        // 將配置物件賦值給該元件的 layoutConfig 屬性
+        if (agentElement) {
+          agentElement.layoutConfig = layoutConfig;
         }
       });
     </script>
