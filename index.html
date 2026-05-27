@@ -153,6 +153,30 @@
             background-color: #34495e;
             transform: scale(1.05);
         }
+
+        /* 💡 新增：最上層耀眼的高光提示橫條 */
+        #smartNoticeBar {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #111111 0%, #2c3e50 100%);
+            color: #00ffcc; /* 高科技感螢光綠 */
+            padding: 12px 28px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 100050;
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            animation: slideDown 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes slideDown {
+            0% { transform: translate(-50%, -60px); opacity: 0; }
+            100% { transform: translate(-50%, 0); opacity: 1; }
+        }
     </style>
     <script
       type="module"
@@ -180,6 +204,7 @@
     <div id="globalDragHandle"></div>
 
     <button id="textSendBadge">🚀 Send to AI</button>
+    <div id="smartNoticeBar">📋 文字已完美複製！請在右下角直接按 Ctrl+V (貼上) 送出 🚀</div>
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
@@ -213,6 +238,7 @@
         const agentContainer = document.getElementById('agentContainer');
         const dragHandle = document.getElementById('globalDragHandle');
         const textSendBadge = document.getElementById('textSendBadge');
+        const smartNoticeBar = document.getElementById('smartNoticeBar');
 
         let currentX = 0;
         let currentY = 0;
@@ -282,79 +308,33 @@
             }
         });
 
-        // 💡 必勝直發核心：繞過 React 事件，調用瀏覽器底層原生指令強行塞字並送出
+        // 💡 終極必勝接力機制：快取剪貼簿與強效視覺引導
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
 
             if (!selectedTextStore) return;
 
-            // 1. 如果視窗沒開，立刻在右下角預設初始點爆開對話框
-            if (agentEl && agentEl.offsetHeight < 150) {
-                forceResetToDefaultCorner();
-                dragHandle.style.pointerEvents = 'none';
-                
-                const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                if (clickTarget) clickTarget.click();
-                
-                window.dispatchEvent(new Event('resize'));
-                setTimeout(matchAgentPosition, 120);
-                
-                setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
-            }
+            // 1. 繞過所有沙盒限制，直接將文字存入剪貼簿
+            navigator.clipboard.writeText(selectedTextStore).then(() => {
+                // 2. 彈出頂部極度耀眼的引導橫條
+                smartNoticeBar.style.display = 'block';
+                setTimeout(() => { smartNoticeBar.style.display = 'none'; }, 5000);
 
-            // 💡 2. 深度穿透輪詢器
-            let retryCount = 0;
-            const maxRetries = 35; 
-
-            const injectPollInterval = setInterval(() => {
-                retryCount++;
-                if (retryCount > maxRetries) {
-                    clearInterval(injectPollInterval);
-                    return;
-                }
-
-                // 穿透所有 Shadow DOM 尋找輸入節點
-                function findPerxonaInput(root) {
-                    if (!root) return null;
-                    const target = root.querySelector('[contenteditable="true"]') || 
-                                   root.querySelector('textarea') || 
-                                   root.querySelector('input');
-                    if (target) return target;
-
-                    const allNodes = root.querySelectorAll('*');
-                    for (let i = 0; i < allNodes.length; i++) {
-                        if (allNodes[i].shadowRoot) {
-                            const deepTarget = findPerxonaInput(allNodes[i].shadowRoot);
-                            if (deepTarget) return deepTarget;
-                        }
-                    }
-                    return null;
-                }
-
-                const inputNode = findPerxonaInput(agentEl.shadowRoot);
-
-                // 🎯 抓到輸入節點了！執行底層強行貼上
-                if (inputNode) {
-                    clearInterval(injectPollInterval); 
+                // 3. 強迫 Agent 流暢回歸右下角出生點，並立刻點開
+                if (agentEl && agentEl.offsetHeight < 150) {
+                    forceResetToDefaultCorner();
+                    dragHandle.style.pointerEvents = 'none';
                     
-                    inputNode.focus();
+                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                    if (clickTarget) clickTarget.click();
                     
-                    // 清空原本的 placeholder
-                    inputNode.innerHTML = ""; 
+                    window.dispatchEvent(new Event('resize'));
+                    setTimeout(matchAgentPosition, 120);
                     
-                    // 💡 【大招】：改用瀏覽器底層的命令，這會強迫 React 去捕捉並更新狀態，絕對不會被洗掉！
-                    document.execCommand('insertText', false, selectedTextStore);
-
-                    // 🚀 物理發送：發送虛擬的 Enter 鍵直接把訊息發射出去
-                    setTimeout(() => {
-                        const enterKeyDown = new KeyboardEvent('keydown', { keyCode: 13, key: 'Enter', code: 'Enter', bubbles: true, composed: true });
-                        const enterKeyUp = new KeyboardEvent('keyup', { keyCode: 13, key: 'Enter', code: 'Enter', bubbles: true, composed: true });
-                        inputNode.dispatchEvent(enterKeyDown);
-                        inputNode.dispatchEvent(enterKeyUp);
-                    }, 80);
+                    setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
                 }
-            }, 60); 
+            });
         });
 
 
