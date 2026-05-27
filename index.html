@@ -282,7 +282,7 @@
             }
         });
 
-        // 💡 終極 Inspect 注入核心：精準攻破 Perxona 的 contenteditable 區塊
+        // 💡 終極直發核心：穿透並以 React 原生事件強制注入發送
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
@@ -303,9 +303,9 @@
                 setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
             }
 
-            // 💡 2. Inspect 必勝機制：多層 Shadow DOM 遞迴尋找器 + 異步動態輪詢波道（Poller）
+            // 💡 2. 深度穿透並採用 React 虛擬 DOM 事件注入
             let retryCount = 0;
-            const maxRetries = 40; // 最多等 2 秒（50ms * 40）
+            const maxRetries = 30; 
 
             const injectPollInterval = setInterval(() => {
                 retryCount++;
@@ -314,17 +314,13 @@
                     return;
                 }
 
-                // 遞迴尋找帶有 contenteditable 的真實 React 節點
                 function findPerxonaInput(root) {
                     if (!root) return null;
-                    
-                    // 🎯 根據 Inspect 結果：Perxona 真正的輸入框特徵
                     const target = root.querySelector('[contenteditable="true"]') || 
                                    root.querySelector('textarea') || 
                                    root.querySelector('input');
                     if (target) return target;
 
-                    // 穿透下一層 ShadowDOM
                     const allNodes = root.querySelectorAll('*');
                     for (let i = 0; i < allNodes.length; i++) {
                         if (allNodes[i].shadowRoot) {
@@ -337,32 +333,40 @@
 
                 const inputNode = findPerxonaInput(agentEl.shadowRoot);
 
-                // 🎯 抓到目標！執行無縫物理注入
                 if (inputNode) {
-                    clearInterval(injectPollInterval); // 立刻停止輪詢
+                    clearInterval(injectPollInterval); 
                     
                     inputNode.focus();
                     
-                    // 填入文字
+                    // 💡 【核心突破】：清除目前節點內容，直接用真實的 InputEvent 將文字當作使用者親自打字塞進去！
+                    inputNode.innerText = "";
+                    
+                    // 這行是破除 React 狀態清空的最高級手段：模擬 insertText 動作
+                    const textEvent = new InputEvent('input', {
+                        bubbles: true,
+                        cancelable: true,
+                        composed: true,
+                        inputType: 'insertText',
+                        data: selectedTextStore
+                    });
+                    
+                    // 先把文字硬塞進節點，隨後立刻用事件強制 React 核心吃下它
                     if (inputNode.tagName === 'INPUT' || inputNode.tagName === 'TEXTAREA') {
                         inputNode.value = selectedTextStore;
                     } else {
                         inputNode.innerText = selectedTextStore;
                     }
+                    inputNode.dispatchEvent(textEvent);
 
-                    // 🔥 關鍵：觸發 React 框架必備的 Input 原生事件，讓小黑黑感知到有字進來
-                    inputNode.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-                    inputNode.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-
-                    // 🚀 物理送出：發送虛擬的 Enter 鍵直接把訊息轟出去
+                    // 🚀 物理發送：發送虛擬的 Enter 鍵直接把訊息發射出去
                     setTimeout(() => {
-                        const enterKeyDown = new KeyboardEvent('keydown', { keyCode: 13, key: 'Enter', bubbles: true, composed: true });
-                        const enterKeyUp = new KeyboardEvent('keyup', { keyCode: 13, key: 'Enter', bubbles: true, composed: true });
+                        const enterKeyDown = new KeyboardEvent('keydown', { keyCode: 13, key: 'Enter', code: 'Enter', bubbles: true, composed: true });
+                        const enterKeyUp = new KeyboardEvent('keyup', { keyCode: 13, key: 'Enter', code: 'Enter', bubbles: true, composed: true });
                         inputNode.dispatchEvent(enterKeyDown);
                         inputNode.dispatchEvent(enterKeyUp);
-                    }, 50);
+                    }, 60);
                 }
-            }, 50); // 每 50 毫秒瘋狂掃描一次，直到輸入框長出來
+            }, 60); 
         });
 
 
