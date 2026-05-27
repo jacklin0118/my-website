@@ -132,7 +132,7 @@
         }
 
         /* ========================================================
-           文字選取後浮現的 "Send" 快速按鈕樣式
+           選取文字後浮現的 "Send" 快速按鈕樣式
            ======================================================== */
         #textSendBadge {
             display: none;
@@ -152,29 +152,6 @@
         #textSendBadge:hover {
             background-color: #34495e;
             transform: scale(1.05);
-        }
-
-        /* 💡 新增：更加精緻亮眼的複製引導提示泡泡 */
-        #copyToastTip {
-            display: none;
-            position: fixed;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-size: 15px;
-            font-weight: bold;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-            z-index: 100050;
-            animation: bounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        @keyframes bounceIn {
-            0% { transform: translate(-50%, -40px) scale(0.8); opacity: 0; }
-            100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
         }
     </style>
     <script
@@ -203,7 +180,6 @@
     <div id="globalDragHandle"></div>
 
     <button id="textSendBadge">🚀 Send to AI</button>
-    <div id="copyToastTip">📋 文字已自動複製！請在右下角對話框直接「貼上」發送 🚀</div>
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
@@ -237,7 +213,6 @@
         const agentContainer = document.getElementById('agentContainer');
         const dragHandle = document.getElementById('globalDragHandle');
         const textSendBadge = document.getElementById('textSendBadge');
-        const copyToastTip = document.getElementById('copyToastTip');
 
         let currentX = 0;
         let currentY = 0;
@@ -307,35 +282,87 @@
             }
         });
 
-        // 💡 終極必勝接力機制：快取剪貼簿與視覺智慧引導
+        // 💡 終極 Inspect 注入核心：精準攻破 Perxona 的 contenteditable 區塊
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
 
             if (!selectedTextStore) return;
 
-            // 1. 無視 Canvas 的程式碼死鎖，直接把選取文字存入使用者系統剪貼簿
-            navigator.clipboard.writeText(selectedTextStore).then(() => {
-                // 2. 顯示頂部精美的操作提示泡泡
-                copyToastTip.style.display = 'block';
-                setTimeout(() => { copyToastTip.style.display = 'none'; }, 4000);
+            // 1. 如果視窗沒開，立刻在右下角預設初始點爆開對話框
+            if (agentEl && agentEl.offsetHeight < 150) {
+                forceResetToDefaultCorner();
+                dragHandle.style.pointerEvents = 'none';
+                
+                const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                if (clickTarget) clickTarget.click();
+                
+                window.dispatchEvent(new Event('resize'));
+                setTimeout(matchAgentPosition, 120);
+                
+                setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
+            }
 
-                // 3. 如果對話視窗還沒開，流暢歸位並立刻點開它
-                if (agentEl && agentEl.offsetHeight < 150) {
-                    forceResetToDefaultCorner();
-                    dragHandle.style.pointerEvents = 'none';
-                    
-                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                    if (clickTarget) clickTarget.click();
-                    
-                    window.dispatchEvent(new Event('resize'));
-                    setTimeout(matchAgentPosition, 120);
-                    
-                    setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
+            // 💡 2. Inspect 必勝機制：多層 Shadow DOM 遞迴尋找器 + 異步動態輪詢波道（Poller）
+            let retryCount = 0;
+            const maxRetries = 40; // 最多等 2 秒（50ms * 40）
+
+            const injectPollInterval = setInterval(() => {
+                retryCount++;
+                if (retryCount > maxRetries) {
+                    clearInterval(injectPollInterval);
+                    return;
                 }
-            }).catch(err => {
-                console.error("剪貼簿讀取失敗: ", err);
-            });
+
+                // 遞迴尋找帶有 contenteditable 的真實 React 節點
+                function findPerxonaInput(root) {
+                    if (!root) return null;
+                    
+                    // 🎯 根據 Inspect 結果：Perxona 真正的輸入框特徵
+                    const target = root.querySelector('[contenteditable="true"]') || 
+                                   root.querySelector('textarea') || 
+                                   root.querySelector('input');
+                    if (target) return target;
+
+                    // 穿透下一層 ShadowDOM
+                    const allNodes = root.querySelectorAll('*');
+                    for (let i = 0; i < allNodes.length; i++) {
+                        if (allNodes[i].shadowRoot) {
+                            const deepTarget = findPerxonaInput(allNodes[i].shadowRoot);
+                            if (deepTarget) return deepTarget;
+                        }
+                    }
+                    return null;
+                }
+
+                const inputNode = findPerxonaInput(agentEl.shadowRoot);
+
+                // 🎯 抓到目標！執行無縫物理注入
+                if (inputNode) {
+                    clearInterval(injectPollInterval); // 立刻停止輪詢
+                    
+                    inputNode.focus();
+                    
+                    // 填入文字
+                    if (inputNode.tagName === 'INPUT' || inputNode.tagName === 'TEXTAREA') {
+                        inputNode.value = selectedTextStore;
+                    } else {
+                        inputNode.innerText = selectedTextStore;
+                    }
+
+                    // 🔥 關鍵：觸發 React 框架必備的 Input 原生事件，讓小黑黑感知到有字進來
+                    inputNode.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                    inputNode.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                    // 🚀 物理送出：發送虛擬的 Enter 鍵直接把訊息轟出去
+                    setTimeout(() => {
+                        const enterKeyDown = new KeyboardEvent('keydown', { keyCode: 13, key: 'Enter', bubbles: true, composed: true });
+                        const enterKeyUp = new KeyboardEvent('keyup', { keyCode: 13, key: 'Enter', bubbles: true, composed: true });
+                        inputNode.dispatchEvent(enterKeyDown);
+                        inputNode.dispatchEvent(enterKeyUp);
+                    }, 50);
+                }
+            }, 50); // 每 50 毫秒瘋狂掃描一次，直到輸入框長出來
         });
 
 
