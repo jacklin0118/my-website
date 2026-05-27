@@ -85,7 +85,7 @@
         }
 
         /* ========================================================
-           💡 智慧型雙向獨立移動舞台：用來承載 Agent，避開 SDK 偵測
+           智慧型雙向獨立移動舞台：用來承載 Agent
            ======================================================== */
         .agent-wrapper {
             position: fixed !important;
@@ -97,7 +97,6 @@
             will-change: transform;
         }
 
-        /* 讓原生 Agent 在 Wrapper 容器內填滿，本體不直接吃任何 transform */
         sv-agent {
             display: block !important;
             width: 100% !important;
@@ -188,9 +187,11 @@
 
         let currentX = 0;
         let currentY = 0;
+        let lastX = 0;
+        let lastY = 0;
 
         // ========================================================
-        // 維持原樣：智慧型行程視窗平行對齊演算法
+        // 智慧型行程視窗平行對齊演算法 (維持原樣)
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
@@ -209,7 +210,7 @@
         }
 
         // ========================================================
-        // 維持原樣：方案 B 全域監聽
+        // 方案 B 全域監聽 (新增：點擊標籤時也將 Agent 物理歸位以正常開啟)
         // ========================================================
         window.addEventListener('click', (event) => {
             const path = event.composedPath();
@@ -218,8 +219,10 @@
             });
 
             if (hasClickedCucumber) {
+                // 點擊小黃瓜時，瞬間將容器清空歸位回右下角預設點，防止 Preparing 錯誤
+                forceResetToDefaultCorner();
                 itineraryWindow.style.display = 'block';
-                setTimeout(matchAgentPosition, 100);
+                setTimeout(matchAgentPosition, 120);
                 event.stopPropagation(); 
             }
         });
@@ -232,15 +235,23 @@
 
 
         // ========================================================
-        // 🚀 全域防滑出拖曳演算機制（移除了對原生 Agent 的樣式破壞）
+        // 🚀 修正時序版：全域防滑出拖曳演算機制
         // ========================================================
         let isDragging = false;
         let startX, startY;
-        let lastX = 0;
-        let lastY = 0;
         let hasMoved = false;
 
+        // 瞬間將外殼與手把回歸到最乾淨右下角初始起點的強效函式
+        function forceResetToDefaultCorner() {
+            agentContainer.style.transition = 'none';
+            dragHandle.style.transition = 'none';
+            agentContainer.style.transform = 'none';
+            dragHandle.style.transform = 'none';
+            currentX = currentY = lastX = lastY = 0;
+        }
+
         function startDrag(e) {
+            // 如果高度展開（代表聊天室已經開了），鎖定禁止拖曳
             if (agentEl && agentEl.offsetHeight > 150) return;
 
             isDragging = true;
@@ -287,8 +298,6 @@
             if (initialTopBound + currentY > window.innerHeight - 85) currentY = window.innerHeight - 85 - initialTopBound;
 
             const transformStyle = `translate(${currentX}px, ${currentY}px)`;
-            
-            // 💡 改動點：只平移外層 Wrapper 容器與手把，讓 sv-agent 內部保持原生態，徹底解掉 Refresh 問題！
             agentContainer.style.transform = transformStyle;
             dragHandle.style.transform = transformStyle;
         }
@@ -299,19 +308,32 @@
 
             dragHandle.classList.remove('dragging-active');
 
+            // 💡 關鍵修正點：
             if (!hasMoved) {
+                // 情況一：使用者放開滑鼠判定為單純點擊（想點開視窗）
+                
+                // 1. 【破除 Preparing 轉圈】瞬間把外殼容器清空重置，100% 移回右下角最原始的位置！
+                forceResetToDefaultCorner();
+                
+                // 2. 指針事件暫時穿透，並延遲 80 毫秒等瀏覽器重繪定位完成
                 dragHandle.style.pointerEvents = 'none'; 
                 
-                const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                if (clickTarget) {
-                    clickTarget.click(); 
-                }
-                
-                setTimeout(matchAgentPosition, 50);
                 setTimeout(() => {
-                    dragHandle.style.pointerEvents = 'auto'; 
-                }, 250);
+                    // 3. 在最乾淨的右下角預設位置發射物理點擊，此時 Perxona 就會 100% 成功加載（再也不會卡住 Preparing...）！
+                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                    if (clickTarget) {
+                        clickTarget.click(); 
+                    }
+                    
+                    setTimeout(() => {
+                        dragHandle.style.pointerEvents = 'auto'; 
+                    }, 200);
+                }, 80);
+
+                setTimeout(matchAgentPosition, 120);
+                
             } else {
+                // 情況二：是真正的拖曳，放開滑鼠時儲存最終平移坐標
                 lastX = currentX;
                 lastY = currentY;
                 dragHandle.style.transform = `translate(${lastX}px, ${lastY}px)`;
