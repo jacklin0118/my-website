@@ -17,23 +17,7 @@
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
-           1. 透明覆蓋層：疊在右下角 Agent 頭像上方，用來觸發行程視窗
-           ======================================================== */
-        .agent-trigger-overlay {
-            position: fixed;
-            bottom: 20px;   /* 請根據你網頁上原本 Agent 的圓形頭像位置調整 */
-            right: 20px;    /* 請根據你網頁上原本 Agent 的圓形頭像位置調整 */
-            width: 80px;    /* 覆蓋頭像的寬度 */
-            height: 80px;   /* 覆蓋頭像的高度 */
-            border-radius: 50%;
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            z-index: 99999; /* 確保疊在最上層可供點擊 */
-        }
-
-        /* ========================================================
-           2. 行程卡片視窗（精準定位在 Agent 左側，兩者並存）
+           行程卡片視窗（精準定位在 Agent 左側，兩者並存）
            ======================================================== */
         .itinerary-popup {
             display: none; /* 預設隱藏 */
@@ -41,7 +25,7 @@
             
             /* 關鍵定位：讓它長在 Agent 的左邊，並與 Agent 的排版融合 */
             bottom: 100px;        /* 避開右下角頭像，高度對齊展開後的對話框 */
-            right: 420px;        /* 留出空間給 Perxona 展開後的聊天視窗（假設聊天室寬約 380px-400px） */
+            right: 420px;        /* 留出空間給 Perxona 展開後的聊天視窗（寬約 380px-400px） */
             
             width: 60vw;         /* 寬度佔螢幕的 60% */
             max-width: 800px;
@@ -51,7 +35,7 @@
             background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            z-index: 99998;      /* 稍微低於透明按鈕，但高於一般網頁內容 */
+            z-index: 99998;      /* 確保高於一般網頁內容 */
             padding: 30px;
             box-sizing: border-box;
             text-align: left;
@@ -123,8 +107,6 @@
       apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
     ></sv-agent>
 
-    <button class="agent-trigger-overlay" id="agentBtnOverlay"></button>
-
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
         
@@ -152,28 +134,31 @@
     </div>
 
     <script>
-        const agentBtnOverlay = document.getElementById('agentBtnOverlay');
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
 
-        // 當使用者點擊右下角頭像（透明覆蓋層）
-        agentBtnOverlay.addEventListener('click', () => {
-            // 顯示左側行程視窗
-            itineraryWindow.style.display = 'block';
+        // ========================================================
+        // 方案 B：全域監聽點擊，穿透 Shadow DOM 偵測關鍵字
+        // ========================================================
+        window.addEventListener('click', (event) => {
+            // 獲取點擊事件穿透的所有元素路徑
+            const path = event.composedPath();
+            
+            // 檢查點擊路徑中，有沒有任何元素的文字剛好是 "當季小黃瓜照片"
+            const hasClickedCucumber = path.some(element => {
+                return element.textContent && element.textContent.trim() === '當季小黃瓜照片';
+            });
 
-            /* 【技術點撥】
-              因為透明按鈕（z-index: 99999）擋在最上面，點擊它會阻止底下 Agent 的原生點擊。
-              為了讓底下的 Perxona Agent 也能「同時打開聊天室」，
-              我們在點擊後，把透明按鈕暫時隱藏（或者移走），這樣使用者如果再點一次，就能直接和 Agent 對話。
-            */
-            agentBtnOverlay.style.display = 'none';
+            // 如果點到了，就秀出左邊行程視窗
+            if (hasClickedCucumber) {
+                itineraryWindow.style.display = 'block';
+                event.stopPropagation(); // 阻止事件干擾
+            }
         });
 
         // 點擊 X 關閉行程視窗
         closeItineraryBtn.addEventListener('click', () => {
             itineraryWindow.style.display = 'none';
-            // 恢復透明覆蓋層，讓下一次點擊依然能觸發行程
-            agentBtnOverlay.style.display = 'block';
         });
     </script>
 
