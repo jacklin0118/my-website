@@ -16,77 +16,65 @@
         h1 { color: #2c3e50; }
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
-        /* ==========================================
-           新增：透明覆蓋按鈕樣式（精準覆蓋右下角 Agent）
-           ========================================== */
-        .agent-click-overlay {
+        /* ========================================================
+           1. 透明覆蓋層：疊在右下角 Agent 頭像上方，用來觸發行程視窗
+           ======================================================== */
+        .agent-trigger-overlay {
             position: fixed;
-            bottom: 20px;   /* 根據你網頁上 agent 的實際位置微調 */
-            right: 20px;    /* 根據你網頁上 agent 的實際位置微調 */
-            width: 80px;    /* 覆蓋圓形大頭貼的寬度 */
-            height: 80px;   /* 覆蓋圓形大頭貼的高度 */
+            bottom: 20px;   /* 請根據你網頁上原本 Agent 的圓形頭像位置調整 */
+            right: 20px;    /* 請根據你網頁上原本 Agent 的圓形頭像位置調整 */
+            width: 80px;    /* 覆蓋頭像的寬度 */
+            height: 80px;   /* 覆蓋頭像的高度 */
             border-radius: 50%;
-            background: transparent; /* 完全透明 */
+            background: transparent;
             border: none;
             cursor: pointer;
-            z-index: 99999; /* 確保在最上層，可以被點擊 */
+            z-index: 99999; /* 確保疊在最上層可供點擊 */
         }
 
-        /* 彈出視窗（Modal）背景遮罩 */
-        .modal-overlay {
-            display: none; 
+        /* ========================================================
+           2. 行程卡片視窗（精準定位在 Agent 左側，兩者並存）
+           ======================================================== */
+        .itinerary-popup {
+            display: none; /* 預設隱藏 */
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            z-index: 100000; /* 比透明按鈕更高，彈出時蓋住全螢幕 */
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* 彈出視窗主體版面配置 (Flexbox 左右並排) */
-        .modal-content {
-            display: flex;
-            width: 90%;
-            max-width: 1100px;
-            height: 80vh;
-            background-color: #fff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            position: relative;
-        }
-
-        /* 左側行程卡片區域 */
-        .modal-left {
-            flex: 1.8;
+            
+            /* 關鍵定位：讓它長在 Agent 的左邊，並與 Agent 的排版融合 */
+            bottom: 100px;        /* 避開右下角頭像，高度對齊展開後的對話框 */
+            right: 420px;        /* 留出空間給 Perxona 展開後的聊天視窗（假設聊天室寬約 380px-400px） */
+            
+            width: 60vw;         /* 寬度佔螢幕的 60% */
+            max-width: 800px;
+            height: 70vh;        /* 高度佔螢幕的 70% */
+            max-height: 600px;
+            
             background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            z-index: 99998;      /* 稍微低於透明按鈕，但高於一般網頁內容 */
             padding: 30px;
-            overflow-y: auto;
+            box-sizing: border-box;
             text-align: left;
+            overflow-y: auto;
+            animation: fadeIn 0.3s ease-out; /* 彈出動畫 */
         }
 
-        /* 右側 AI Agent 區域 */
-        .modal-right {
-            flex: 1.2;
-            background-color: #222;
-            position: relative;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
-        /* 關閉按鈕 */
+        /* 關閉按鈕 (X) */
         .close-btn {
             position: absolute;
             top: 15px;
-            right: 20px;
-            font-size: 30px;
+            right: 25px;
+            font-size: 28px;
             cursor: pointer;
             color: #555;
-            z-index: 10;
         }
 
-        /* 模擬卡片樣式 */
+        /* 模擬卡片排版樣式 */
         .card-container {
             display: flex;
             gap: 15px;
@@ -130,84 +118,62 @@
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
     <sv-agent
-      id="myPerxonaAgent"
       agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
       presentationMode="bubble"
       apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
     ></sv-agent>
 
-    <button class="agent-click-overlay" id="agentOverlayBtn"></button>
+    <button class="agent-trigger-overlay" id="agentBtnOverlay"></button>
 
-    <div class="modal-overlay" id="popupModal">
-        <div class="modal-content">
-            <span class="close-btn" id="closeModalBtn">&times;</span>
-            
-            <div class="modal-left">
-                <h2>想看日本三大花火大會 (3)</h2>
-                <p style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; font-size: 15px; line-height: 1.5;">
-                    如果你想看日本三大花火大會之一的長岡煙火，現在有不同的行程可以選擇，包括一日直達A區觀賞席、兩天一夜B區觀賞席加溫泉住宿...
-                </p>
-                
-                <div class="card-container">
-                    <div class="card">
-                        <img src="https://images.unsplash.com/photo-1533105079780-92b9be482077?w=500" alt="煙火">
-                        <div class="card-body">
-                            <div class="card-title">【保證有位】日本三大花火長岡煙火A區觀賞 | 直達會場接駁</div>
-                            <div class="card-price">TWD 5,500 起</div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500" alt="煙火">
-                        <div class="card-body">
-                            <div class="card-title">【保證有位】日本三大花火長岡煙火B區觀賞席 | 市區散策 + ...</div>
-                            <div class="card-price">TWD 12,500 起</div>
-                        </div>
-                    </div>
+    <div class="itinerary-popup" id="itineraryWindow">
+        <span class="close-btn" id="closeItineraryBtn">&times;</span>
+        
+        <h2>想看日本三大花火大會 (3)</h2>
+        <p style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; font-size: 15px; line-height: 1.5;">
+            如果你想看日本三大花火大會之一的長岡煙火，現在有不同的行程可以選擇，包括一日直達A區觀賞席、兩天一夜B區觀賞席加溫泉住宿，還有三天的彌彥神社巡禮和煙火體驗，讓你輕鬆享受壯觀的煙火盛會。
+        </p>
+        
+        <div class="card-container">
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1533105079780-92b9be482077?w=500" alt="煙火">
+                <div class="card-body">
+                    <div class="card-title">【保證有位】日本三大花火長岡煙火A區觀賞 | 直達會場接駁</div>
+                    <div class="card-price">TWD 5,500 起</div>
                 </div>
             </div>
-
-            <div class="modal-right">
-                <sv-agent
-                  agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
-                  presentationMode="chat" 
-                  apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
-                  style="width: 100%; height: 100%; position: absolute; top:0; left:0;"
-                ></sv-agent>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500" alt="煙火">
+                <div class="card-body">
+                    <div class="card-title">【保證有位】日本三大花火長岡煙火B區觀賞席 | 市區散策 + ...</div>
+                    <div class="card-price">TWD 12,500 起</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        const agentOverlayBtn = document.getElementById('agentOverlayBtn');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-        const popupModal = document.getElementById('popupModal');
-        const mainAgent = document.getElementById('myPerxonaAgent');
+        const agentBtnOverlay = document.getElementById('agentBtnOverlay');
+        const itineraryWindow = document.getElementById('itineraryWindow');
+        const closeItineraryBtn = document.getElementById('closeItineraryBtn');
 
-        // 當使用者點擊右下角的頭像（實際是點到透明疊加層）
-        agentOverlayBtn.addEventListener('click', (e) => {
-            // 1. 顯示大彈出視窗
-            popupModal.style.display = 'flex';
-            
-            // 2. 暫時隱藏原本右下角的泡泡，避免干擾視覺
-            mainAgent.style.display = 'none';
-            agentOverlayBtn.style.display = 'none';
+        // 當使用者點擊右下角頭像（透明覆蓋層）
+        agentBtnOverlay.addEventListener('click', () => {
+            // 顯示左側行程視窗
+            itineraryWindow.style.display = 'block';
+
+            /* 【技術點撥】
+              因為透明按鈕（z-index: 99999）擋在最上面，點擊它會阻止底下 Agent 的原生點擊。
+              為了讓底下的 Perxona Agent 也能「同時打開聊天室」，
+              我們在點擊後，把透明按鈕暫時隱藏（或者移走），這樣使用者如果再點一次，就能直接和 Agent 對話。
+            */
+            agentBtnOverlay.style.display = 'none';
         });
 
-        // 點擊 X 關閉彈出視窗
-        closeModalBtn.addEventListener('click', () => {
-            popupModal.style.display = 'none';
-            // 恢復右下角的頭像
-            mainAgent.style.display = 'block';
-            agentOverlayBtn.style.display = 'block';
-        });
-
-        // 點擊彈出視窗外圍空白處也可以關閉
-        window.addEventListener('click', (e) => {
-            if (e.target === popupModal) {
-                popupModal.style.display = 'none';
-                mainAgent.style.display = 'block';
-                agentOverlayBtn.style.display = 'block';
-            }
+        // 點擊 X 關閉行程視窗
+        closeItineraryBtn.addEventListener('click', () => {
+            itineraryWindow.style.display = 'none';
+            // 恢復透明覆蓋層，讓下一次點擊依然能觸發行程
+            agentBtnOverlay.style.display = 'block';
         });
     </script>
 
