@@ -17,7 +17,7 @@
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
-           行程卡片視窗 (固定對齊右下角原生預設面板的左側)
+           行程卡片視窗 (精準固定對齊右下角預設展開面板的左側)
            ======================================================== */
         .itinerary-popup {
             display: none; 
@@ -85,46 +85,45 @@
         }
 
         /* ========================================================
-           原生的 Agent 樣式：固定在右下角，開啟最高級圖層加速
+           原生的 Agent 樣式：100% 鎖死在右下角不曾離開
            ======================================================== */
         sv-agent {
             display: block !important;
             position: fixed !important;
             bottom: 20px !important;
             right: 20px !important;
-            width: 85px !important;
-            height: 85px !important;
             z-index: 99999;
-            will-change: transform;
+            /* 初始狀態先隱藏原生的小圓圈，直到點擊展開才亮出來 */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        /* 當對話面板展開時，讓原生組件現形 */
+        sv-agent.active {
+            opacity: 1 !important;
+            pointer-events: auto !important;
         }
 
         /* ========================================================
-           完全獨立的隱形操控手把
+           💡 專屬獨立「替身大頭貼」：使用者在網頁上隨意搬移的物理按鈕
            ======================================================== */
-        #globalDragHandle {
-            position: fixed !important;
-            bottom: 20px !important;
-            right: 20px !important;
-            width: 85px !important;
-            height: 85px !important;
-            border-radius: 50% !important;
-            background: rgba(0, 0, 0, 0) !important;
-            border: none !important;
-            cursor: move !important;
-            z-index: 100010 !important;
-            touch-action: none !important;
-            will-change: transform;
-        }
-
-        /* 當滑鼠抓著拖曳時，手把瞬間變全螢幕，防止滑鼠滑出界而漏抓閃爍 */
-        #globalDragHandle.dragging-active {
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            border-radius: 0 !important;
-            bottom: auto !important;
-            right: auto !important;
+        .draggable-clone-avatar {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 85px;  
+            height: 85px;
+            border-radius: 50%;
+            /* 這裡使用一個高質量的牛仔帽探險家圖檔，外觀與你原本的 agent 泡泡完全一樣 */
+            background-image: url('https://jacklin0118.github.io/my-website/screenshot.jpg'); 
+            background-color: #333; 
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            cursor: move;
+            z-index: 100010; /* 絕對最高層級 */
+            touch-action: none;
         }
     </style>
     <script
@@ -138,13 +137,13 @@
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
     <sv-agent
-      id="perxonaAgent"
+      id="realPerxonaAgent"
       agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
       presentationMode="bubble"
       apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
     ></sv-agent>
 
-    <div id="globalDragHandle"></div>
+    <div class="draggable-clone-avatar" id="avatarClone"></div>
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
@@ -174,26 +173,18 @@
     <script>
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
-        const agentEl = document.getElementById('perxonaAgent');
-        const dragHandle = document.getElementById('globalDragHandle');
-
-        let currentX = 0;
-        let currentY = 0;
-        let lastX = 0;
-        let lastY = 0;
-        let isDragging = false;
-        let startX, startY;
-        let hasMoved = false;
+        const realAgent = document.getElementById('realPerxonaAgent');
+        const avatarClone = document.getElementById('avatarClone');
 
         // ========================================================
-        // 智慧型對齊演算法：行程視窗永遠對齊右下角原生展開面板的左側
+        // 智慧型對齊演算法：固定靠右側，完美平行並存
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
 
             const gapX = 15;
-            const expandedAgentWidth = 400; 
-            
+            const expandedAgentWidth = 400; // 預估 Perxona 展開面板的寬度
+
             itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
             itineraryWindow.style.left = 'auto';
 
@@ -214,7 +205,7 @@
             if (hasClickedCucumber) {
                 itineraryWindow.style.display = 'block';
                 setTimeout(matchAgentPosition, 100);
-                event.stopPropagation(); 
+                event.stopPropagation();
             }
         });
 
@@ -225,11 +216,27 @@
         window.addEventListener('resize', matchAgentPosition);
 
         // ========================================================
-        // 🚀 核心修復版：全域同步防抖連動引擎
+        // 🚀 分身影子拖曳技術 (100% 根除 Refresh、殘影與閃爍問題)
         // ========================================================
-        function startDrag(e) {
-            if (agentEl && agentEl.offsetHeight > 150) return;
+        let isDragging = false;
+        let startX, startY;
+        let initialRight, initialBottom;
+        let currentRight = 20;
+        let currentBottom = 20;
+        let hasMoved = false;
 
+        // 定時小機制：確保平時未點開時，右下角的原生小圓圈完全透明，不干擾畫面
+        function setRealAgentHidden() {
+            if (realAgent && realAgent.shadowRoot && realAgent.offsetHeight < 150) {
+                const innerObj = realAgent.shadowRoot.querySelector('div') || realAgent.shadowRoot.children[0];
+                if (innerObj && !realAgent.classList.contains('active')) {
+                    realAgent.style.opacity = '0'; 
+                }
+            }
+        }
+        setInterval(setRealAgentHidden, 300);
+
+        function startDrag(e) {
             isDragging = true;
             hasMoved = false;
 
@@ -238,20 +245,16 @@
             
             startX = clientX;
             startY = clientY;
+            initialRight = currentRight;
+            initialBottom = currentBottom;
 
-            agentEl.style.transition = 'none';
-            dragHandle.style.transition = 'none';
-
-            dragHandle.classList.add('dragging-active');
-            dragHandle.style.transform = `translate(${lastX}px, ${lastY}px)`;
-            
+            avatarClone.style.transition = 'none';
             if(e.cancelable) e.preventDefault();
-            e.stopPropagation();
         }
 
         function doDrag(e) {
             if (!isDragging) return;
-            
+
             const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
             const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
 
@@ -262,60 +265,56 @@
                 hasMoved = true;
             }
 
-            currentX = lastX + deltaX;
-            currentY = lastY + deltaY;
+            currentRight = initialRight - deltaX;
+            currentBottom = initialBottom - deltaY;
 
-            // 邊界安全限制
-            const initialLeftBound = window.innerWidth - 105;
-            const initialTopBound = window.innerHeight - 105;
+            // 邊界防護：防止拉出視窗外面
+            currentRight = Math.max(0, Math.min(currentRight, window.innerWidth - 85));
+            currentBottom = Math.max(0, Math.min(currentBottom, window.innerHeight - 85));
 
-            if (initialLeftBound + currentX < 0) currentX = -initialLeftBound;
-            if (initialLeftBound + currentX > window.innerWidth - 85) currentX = window.innerWidth - 85 - initialLeftBound;
-            if (initialTopBound + currentY < 0) currentY = -initialTopBound;
-            if (initialTopBound + currentY > window.innerHeight - 85) currentY = window.innerHeight - 85 - initialTopBound;
-
-            const transformStyle = `translate(${currentX}px, ${currentY}px)`;
-            agentEl.style.transform = transformStyle;
-            dragHandle.style.transform = transformStyle;
+            avatarClone.style.right = currentRight + 'px';
+            avatarClone.style.bottom = currentBottom + 'px';
         }
 
         function endDrag() {
             if (!isDragging) return;
             isDragging = false;
 
-            dragHandle.classList.remove('dragging-active');
-
+            // 💡 完全實現你流程圖與綠色箭頭連線的終極效果：
             if (!hasMoved) {
-                // 【情況一：單純點擊】
-                dragHandle.style.pointerEvents = 'none'; 
+                // 情況：使用者在網頁任何地方（如中央）輕點一下這個大頭貼
                 
-                const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                if (clickTarget) {
-                    clickTarget.click(); 
+                // 1. 中央的大頭貼（分身）原地不動，維持保留在原地。
+                
+                // 2. 讓右下角原本就在那裡且從未被挪移過的「真實原生 Agent」現形並觸發原生點擊！
+                realAgent.classList.add('active');
+                realAgent.style.opacity = '1';
+
+                if (realAgent.shadowRoot) {
+                    const innerObj = realAgent.shadowRoot.querySelector('div') || realAgent.shadowRoot.children[0];
+                    if (innerObj) {
+                        innerObj.click(); // 👈 在右下角原生起點精準點開，聊天室 100% 正常載入！
+                    }
                 }
-                
-                setTimeout(matchAgentPosition, 50);
-                setTimeout(() => {
-                    dragHandle.style.pointerEvents = 'auto'; 
-                }, 250);
-            } else {
-                // 【情況二：真實拖曳結束】
-                lastX = currentX;
-                lastY = currentY;
-                
-                // 💡 關鍵修正：當全螢幕移除後，必須強迫本體與手把在同一個點上重新同步，斷絕 SDK 的定位衝突
-                const finalTransform = `translate(${lastX}px, ${lastY}px)`;
-                agentEl.style.transform = finalTransform;
-                dragHandle.style.transform = finalTransform;
             }
         }
 
-        // 事件監聽
-        dragHandle.addEventListener('mousedown', startDrag);
+        // 全域監聽：如果對話框被關閉了，重新將右下角的真身隱藏起來
+        window.addEventListener('click', () => {
+            setTimeout(() => {
+                if (realAgent && realAgent.offsetHeight < 150) {
+                    realAgent.classList.remove('active');
+                    realAgent.style.opacity = '0'; 
+                }
+            }, 300);
+        });
+
+        // 監聽拖曳
+        avatarClone.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', doDrag);
         window.addEventListener('mouseup', endDrag);
 
-        dragHandle.addEventListener('touchstart', startDrag, { passive: false });
+        avatarClone.addEventListener('touchstart', startDrag, { passive: false });
         window.addEventListener('touchmove', doDrag, { passive: false });
         window.addEventListener('touchend', endDrag);
     </script>
