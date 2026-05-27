@@ -17,39 +17,41 @@
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
-           1. 專屬外容器：加上平滑的歸位動畫效果 (transition)
+           1. 專屬外容器：改為自適應寬高，避免壓扁或限制展開後的聊天室
            ======================================================== */
         .agent-container {
             position: fixed !important;
-            bottom: 20px; /* 預設右下角位置 */
-            right: 20px;  /* 預設右下角位置 */
-            width: 85px;  
-            height: 85px; 
+            bottom: 20px; 
+            right: 20px;  
+            width: auto;  
+            height: auto; 
             z-index: 99999;
             touch-action: none;
         }
 
+        /* 調整原生 Agent 的初始大小，展開時由它內部組件自己撐開 */
         sv-agent {
-            width: 100% !important;
-            height: 100% !important;
+            display: block;
+            min-width: 85px;
+            min-height: 85px;
         }
 
-        /* 隱形拖曳手把 */
+        /* 隱形拖曳手把：精準覆蓋右下角小泡泡頭像 */
         .drag-handle {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 80px;      
-            height: 80px;     
+            bottom: 0;
+            right: 0;
+            width: 85px;      
+            height: 85px;     
             border-radius: 50%;
-            background: rgba(0, 0, 0, 0); 
+            background: rgba(0, 0, 0, 0); /* 保持完全透明 */
             border: none;
             cursor: move;     
-            z-index: 100001;  
+            z-index: 100002;  /* 提高層級，確保絕對優先被滑鼠抓到 */
         }
 
         /* ========================================================
-           2. 行程卡片視窗 (精準定位在右下角 Agent 左側)
+           2. 行程卡片視窗
            ======================================================== */
         .itinerary-popup {
             display: none; 
@@ -63,7 +65,6 @@
             text-align: left;
             overflow-y: auto;
             
-            /* 寬度與高度設定 */
             width: 55vw;
             max-width: 820px;
             min-width: 450px;
@@ -129,6 +130,7 @@
 
     <div class="agent-container" id="agentWrapper">
         <div class="drag-handle" id="dragHandle"></div>
+        
         <sv-agent
           id="perxonaAgent"
           agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
@@ -139,7 +141,6 @@
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
-        
         <h2>想看日本三大花火大會 (3)</h2>
         <p style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; font-size: 15px; line-height: 1.5;">
             如果你想看日本三大花火大會之一的長岡煙火，現在有不同的行程可以選擇，包括一日直達A區觀賞席、兩天一夜B區觀賞席加溫泉住宿，還有三天的彌彥神社巡禮和煙火體驗，讓你輕鬆享受壯觀的煙火盛會。
@@ -170,14 +171,13 @@
         const dragHandle = document.getElementById('dragHandle');
 
         // ========================================================
-        // 智慧對齊：因為點開時 Agent 被吸回右下角，所以行程視窗也固定對齊右下角
+        // 智慧型對齊：精準與右下角預設展開的對話框平行
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
 
-            // 固定完美平行與靠右對齊 (這能與 Perxona 預設開啟的位置 100% 同步)
             const gapX = 15;
-            const expandedAgentWidth = 400; 
+            const expandedAgentWidth = 400; // 預估 Perxona 展開後的聊天室寬度
             
             itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
             itineraryWindow.style.left = 'auto';
@@ -199,7 +199,7 @@
             });
 
             if (hasClickedCucumber) {
-                // 如果在拖曳狀態點開，先強制將 Agent 吸回右下角
+                // 如果在任意拖曳位置被觸發，強制將大頭貼先滑順吸回右下角
                 resetAgentToDefaultPosition();
                 
                 itineraryWindow.style.display = 'block';
@@ -216,16 +216,16 @@
 
 
         // ========================================================
-        // 3. 拖曳控制邏輯（加入「點擊歸位」核心黑科技）
+        // 3. 升級版拖曳控制邏輯（完美兼容展開、修復無法移動問題）
         // ========================================================
         let isDragging = false;
         let startX, startY;
         let initialLeft, initialTop;
         let hasMoved = false;
 
-        // 強制把大頭貼吸回右下角預設位置的函式
+        // 強制把大頭貼吸回右下角預設位置
         function resetAgentToDefaultPosition() {
-            agentWrapper.style.transition = 'all 0.3s ease'; // 加上絲滑的吸回動畫
+            agentWrapper.style.transition = 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)'; 
             agentWrapper.style.left = 'auto';
             agentWrapper.style.top = 'auto';
             agentWrapper.style.right = '20px';
@@ -233,14 +233,16 @@
         }
 
         function startDrag(e) {
-            // 如果高度變長（代表聊天室已經開了），鎖定拖曳
-            if (agentWrapper.offsetHeight > 150) return;
+            // 點擊手把時，若目前偵測到聊天室已經展開，就完全不觸發拖曳
+            const agentEl = document.getElementById('perxonaAgent');
+            if (agentEl && agentEl.offsetHeight > 150) return;
 
             isDragging = true;
             hasMoved = false;
 
-            const clientX = e.clientX || e.touches[0].clientX;
-            const clientY = e.clientY || e.touches[0].clientY;
+            // 兼顧滑鼠事件與手機手指觸控事件
+            const clientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
+            const clientY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
             
             startX = clientX;
             startY = clientY;
@@ -249,70 +251,74 @@
             initialLeft = rect.left;
             initialTop = rect.top;
 
-            // 拖曳時要關閉 transition，不然移動會卡頓延遲
+            // 拖曳中必須移除動畫過渡，不然移動會延遲卡頓
             agentWrapper.style.transition = 'none';
+            
+            if(e.cancelable) e.preventDefault();
+            e.stopPropagation();
         }
 
         function doDrag(e) {
             if (!isDragging) return;
             
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
 
             const deltaX = clientX - startX;
             const deltaY = clientY - startY;
 
-            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+            // 超過 4 像素才判定為故意拖曳，避免點擊時手指微顫
+            if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
                 hasMoved = true;
             }
 
             let newLeft = initialLeft + deltaX;
             let newTop = initialTop + deltaY;
 
-            newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - agentWrapper.offsetWidth));
-            newTop = Math.max(0, Math.min(newTop, window.innerHeight - agentWrapper.offsetHeight));
+            // 邊界安全限制：防止頭像被丟出瀏覽器視窗外
+            newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - 85));
+            newTop = Math.max(0, Math.min(newTop, window.innerHeight - 85));
 
+            // 更新拖曳中的即時位置
             agentWrapper.style.right = 'auto';
             agentWrapper.style.bottom = 'auto';
             agentWrapper.style.left = newLeft + 'px';
             agentWrapper.style.top = newTop + 'px';
-
-            if (itineraryWindow.style.display === 'block') {
-                matchAgentPosition();
-            }
         }
 
-        function endDrag() {
+        function endDrag(e) {
             if (!isDragging) return;
             isDragging = false;
 
-            // 【核心修正】如果使用者只是點一下大頭貼（沒有要拖曳，單純想開啟聊天室）
+            // 情境一：使用者只是單純「點擊」大頭貼（沒有要拖曳）
             if (!hasMoved) {
-                // 1. 瞬間把大頭貼平滑吸回原本的右下角，防止 Perxona 展開時錯位！
+                // 1. 觸發吸回右下角預設歸位，給 Perxona 聊天室充足的空間展開
                 resetAgentToDefaultPosition();
 
-                // 2. 穿透點擊，讓 Perxona 正常開啟對話框
+                // 2. 穿透點擊手把，模擬去點擊底下的 Perxona 元件
                 setTimeout(() => {
-                    dragHandle.style.pointerEvents = 'none';
-                    const clickTarget = document.elementFromPoint(window.innerWidth - 40, window.innerHeight - 40);
-                    if (clickTarget) clickTarget.click();
+                    dragHandle.style.pointerEvents = 'none'; // 讓滑鼠點擊可以穿透它
+                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                    if (clickTarget) {
+                        clickTarget.click();
+                    }
                     setTimeout(() => {
-                        dragHandle.style.pointerEvents = 'auto';
-                    }, 300);
-                }, 150); // 留點時間給歸位動畫
+                        dragHandle.style.pointerEvents = 'auto'; // 點擊完後悄悄恢復手把功能
+                    }, 200);
+                }, 150); 
                 
             } else {
-                // 如果是移動，放開後恢復寬高自適應
-                agentWrapper.style.width = 'auto';
-                agentWrapper.style.height = 'auto';
+                // 情境二：使用者做完了搬移，保持留在原地
+                agentWrapper.style.transition = 'none';
             }
         }
 
-        // 綁定滑鼠與觸控事件
+        // 電腦端滑鼠事件監聽
         dragHandle.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', doDrag);
         window.addEventListener('mouseup', endDrag);
 
+        // 行動端手機觸控事件監聽
         dragHandle.addEventListener('touchstart', startDrag, { passive: false });
         window.addEventListener('touchmove', doDrag, { passive: false });
         window.addEventListener('touchend', endDrag);
