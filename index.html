@@ -17,7 +17,7 @@
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
-           維持你原本的：行程卡片視窗樣式（完全沒變）
+           行程卡片視窗
            ======================================================== */
         .itinerary-popup {
             display: none; 
@@ -85,28 +85,39 @@
         }
 
         /* ========================================================
-           💡 新增：獨立的透明拖曳按鈕（精準懸浮在右下角大頭貼正上方）
+           智慧綜合容器：把手把和 Agent 牢牢鎖在同一個物理坐標軸上
            ======================================================== */
-        #globalDragHandle {
-            position: fixed;
-            bottom: 20px; /* 初始與大頭貼對齊 */
-            right: 20px;  /* 初始與大頭貼對齊 */
-            width: 85px;  /* 精準覆蓋小頭像的寬高 */
-            height: 85px;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0); /* 保持完全透明 */
-            border: none;
-            cursor: move; /* 變成可拖曳的手勢 */
-            z-index: 100005; /* 最高層級，確保滑鼠第一優先抓到它 */
-            touch-action: none;
-        }
-        
-        /* 讓原生 Agent 預設固定在右下角，並增加可以用 JS 控制的定位特權 */
-        sv-agent {
+        .agent-master-box {
             position: fixed !important;
             bottom: 20px !important;
             right: 20px !important;
+            width: 85px;  
+            height: 85px;
             z-index: 99999;
+            touch-action: none;
+            /* 💡 移除任何會導致閃爍的原生定位干擾，改用最高級圖層渲染 */
+            will-change: transform;
+        }
+
+        /* 強制讓套件本體撐滿舞台，展開時由它內部自己延伸 */
+        sv-agent {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* 透明拖曳手把：精準覆蓋在未展開的大頭貼正上方 */
+        .drag-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 85px;      
+            height: 85px;     
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0); 
+            border: none;
+            cursor: move;     
+            z-index: 100006;  /* 絕對第一優先權 */
         }
     </style>
     <script
@@ -119,14 +130,15 @@
     <h1>Welcome to My Personal Website!</h1>
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
-    <sv-agent
-      id="perxonaAgent"
-      agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
-      presentationMode="bubble"
-      apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
-    ></sv-agent>
-
-    <div id="globalDragHandle"></div>
+    <div class="agent-master-box" id="masterBox">
+        <div class="drag-handle" id="dragHandle"></div>
+        <sv-agent
+          id="perxonaAgent"
+          agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
+          presentationMode="bubble"
+          apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
+        ></sv-agent>
+    </div>
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
@@ -157,20 +169,30 @@
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
         const agentEl = document.getElementById('perxonaAgent');
-        const dragHandle = document.getElementById('globalDragHandle');
+        const dragHandle = document.getElementById('dragHandle');
+        const masterBox = document.getElementById('masterBox');
+
+        // 紀錄累積變形位移量
+        let currentX = 0;
+        let currentY = 0;
 
         // ========================================================
-        // 維持你之前完全滿意的：智慧型粉色視窗靠右平行對齊演算法
+        // 智慧型隨動對齊演算法：強制粉色視窗跟隨拖曳後的即時坐標
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
 
+            // 抓取移動後外殼的即時物理邊界
+            const rect = masterBox.getBoundingClientRect();
+
             const gapX = 15;
-            const expandedAgentWidth = 400; 
+            const expandedAgentWidth = 400; // 預估展開寬度
             
-            itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
+            // 💡 核心改良：不要用 right，直接用左側坐標 (rect.left) 往前推算，保證隨動精準
+            itineraryWindow.style.right = (window.innerWidth - rect.left + expandedAgentWidth - 85 + gapX) + 'px';
             itineraryWindow.style.left = 'auto';
 
+            // Y 軸對齊
             const desiredTop = 80;  
             const desiredHeight = window.innerHeight - desiredTop - 120; 
 
@@ -179,7 +201,7 @@
         }
 
         // ========================================================
-        // 維持你原本的方案 B：全域點擊監聽「當季小黃瓜照片」
+        // 方案 B：全域點擊穿透監聽（當季小黃瓜照片）
         // ========================================================
         window.addEventListener('click', (event) => {
             const path = event.composedPath();
@@ -188,9 +210,8 @@
             });
 
             if (hasClickedCucumber) {
-                resetAgentToCorner(); // 只要觸發開啟行程，就安全吸回右下角，避免畫面破碎
                 itineraryWindow.style.display = 'block';
-                setTimeout(matchAgentPosition, 150);
+                setTimeout(matchAgentPosition, 100);
                 event.stopPropagation(); 
             }
         });
@@ -203,31 +224,16 @@
 
 
         // ========================================================
-        // 🚀 新增：純全域坐標連動拖曳邏輯（100% 自由滑動且不改壞原生對話框）
+        // 🚀 3. 升級版變形平移控制（完美解決閃爍、分身與展開跑位問題）
         // ========================================================
         let isDragging = false;
         let startX, startY;
-        let initialRight, initialBottom;
-        let currentRight = 20; // 紀錄當前的 right 距離值
-        let currentBottom = 20; // 紀錄當前的 bottom 距離值
+        let lastX = 0;
+        let lastY = 0;
         let hasMoved = false;
 
-        // 一鍵將大頭貼與隱形手把平滑吸回預設右下角的安全函式
-        function resetAgentToCorner() {
-            agentEl.style.transition = 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
-            dragHandle.style.transition = 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
-            
-            agentEl.style.right = '20px';
-            agentEl.style.bottom = '20px';
-            dragHandle.style.right = '20px';
-            dragHandle.style.bottom = '20px';
-            
-            currentRight = 20;
-            currentBottom = 20;
-        }
-
         function startDrag(e) {
-            // 如果聊天室高度變長展開了，鎖定不允許搬移，防止在聊天室內打字時誤觸
+            // 如果高度變長（代表對話框開了），立刻鎖定禁止拖曳，防止打字誤觸
             if (agentEl && agentEl.offsetHeight > 150) return;
 
             isDragging = true;
@@ -238,15 +244,11 @@
             
             startX = clientX;
             startY = clientY;
-            
-            initialRight = currentRight;
-            initialBottom = currentBottom;
 
-            // 開始拖曳時，關閉過渡動畫，不然移動會延遲卡手
-            agentEl.style.transition = 'none';
-            dragHandle.style.transition = 'none';
+            masterBox.style.transition = 'none';
             
             if(e.cancelable) e.preventDefault();
+            e.stopPropagation();
         }
 
         function doDrag(e) {
@@ -258,55 +260,60 @@
             const deltaX = clientX - startX;
             const deltaY = clientY - startY;
 
-            // 只要滑鼠移動超過 5 像素，就判定為「拖曳搬移」，而不是「單純點擊」
-            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+            if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
                 hasMoved = true;
             }
 
-            // 換算成 CSS right 與 bottom 的變化數值
-            currentRight = initialRight - deltaX;
-            currentBottom = initialBottom - deltaY;
+            currentX = lastX + deltaX;
+            currentY = lastY + deltaY;
 
-            // 邊界安全限制：不讓大頭貼被甩到網頁瀏覽器外面
-            currentRight = Math.max(0, Math.min(currentRight, window.innerWidth - 85));
-            currentBottom = Math.max(0, Math.min(currentBottom, window.innerHeight - 85));
+            // 螢幕安全邊界碰撞檢查
+            const rect = dragHandle.getBoundingClientRect();
+            if (rect.left + deltaX < 0 || rect.right + deltaX > window.innerWidth) currentX = lastX;
+            if (rect.top + deltaY < 0 || rect.bottom + deltaY > window.innerHeight) currentY = lastY;
 
-            // 同步讓原生 Agent 與透明手把一起平移！
-            agentEl.style.right = currentRight + 'px';
-            agentEl.style.bottom = currentBottom + 'px';
-            dragHandle.style.right = currentRight + 'px';
-            dragHandle.style.bottom = currentBottom + 'px';
+            // 💡 直接對 MasterBox 使用平移，100% 絕不閃爍、不生分身！
+            masterBox.style.transform = `translate(${currentX}px, ${currentY}px)`;
+
+            // 如果行程視窗本來就是開著的，拖曳時一起即時流暢同步
+            if (itineraryWindow.style.display === 'block') {
+                matchAgentPosition();
+            }
         }
 
         function endDrag() {
             if (!isDragging) return;
             isDragging = false;
 
-            // 【智慧衝突防護】如果使用者只是「點一下大頭貼」（沒有故意拖曳移位）
-            if (!hasMoved) {
-                // 1. 先用動畫滑順地把大頭貼和手把吸回右下角（原本最完美的出發點）
-                resetAgentToCorner();
+            lastX = currentX;
+            lastY = currentY;
 
-                // 2. 穿透隱形層，模擬去點擊原本最右下角 Perxona 元件的位置，讓它順利在右下角爆開聊天室！
+            // 情境：使用者只是「輕點一下」
+            if (!hasMoved) {
+                // 💡 注意：我們不再重置吸回右下角了！讓它留在原地展開！
+                dragHandle.style.pointerEvents = 'none'; // 暫時讓點擊穿透隱形手把
+                
+                // 動態取得當前大頭貼在全螢幕上的精準中心點坐標，並實施雷射點擊
+                const rect = dragHandle.getBoundingClientRect();
+                const targetX = rect.left + (rect.width / 2);
+                const targetY = rect.top + (rect.height / 2);
+                
+                const clickTarget = document.elementFromPoint(targetX, targetY);
+                if (clickTarget) {
+                    clickTarget.click(); // 在目前拖到的位置原地喚醒 Perxona 聊天室！
+                }
+                
                 setTimeout(() => {
-                    dragHandle.style.pointerEvents = 'none'; // 讓滑鼠點擊穿透隱形層
-                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                    if (clickTarget) {
-                        clickTarget.click(); // 喚醒聊天室
-                    }
-                    setTimeout(() => {
-                        dragHandle.style.pointerEvents = 'auto'; // 200毫秒後悄悄把手把裝回來
-                    }, 200);
-                }, 150); 
+                    dragHandle.style.pointerEvents = 'auto'; // 悄悄把手把功能裝回來
+                }, 250);
             }
         }
 
-        // 全域網頁託管監聽，滑鼠甩得再快也絕對不會脫鉤
+        // 監聽
         dragHandle.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', doDrag);
         window.addEventListener('mouseup', endDrag);
 
-        // 同步支援手機、平板手指觸控滑動
         dragHandle.addEventListener('touchstart', startDrag, { passive: false });
         window.addEventListener('touchmove', doDrag, { passive: false });
         window.addEventListener('touchend', endDrag);
