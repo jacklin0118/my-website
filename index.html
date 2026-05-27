@@ -131,6 +131,32 @@
             bottom: auto !important;
             right: auto !important;
         }
+
+        /* ========================================================
+           💡 新增：文字選取後浮現的 "Send" 快速按鈕樣式
+           ======================================================== */
+        #textSendBadge {
+            display: none;
+            position: fixed;
+            background-color: #2c3e50;
+            color: white;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            cursor: pointer;
+            z-index: 100020; /* 確保浮在所有人最上層 */
+            border: none;
+            transition: transform 0.1s ease;
+        }
+        #textSendBadge:hover {
+            background-color: #34495e;
+            transform: scale(1.05);
+        }
+        #textSendBadge:active {
+            transform: scale(0.95);
+        }
     </style>
     <script
       type="module"
@@ -142,6 +168,10 @@
     <h1>Welcome to My Personal Website!</h1>
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
+    <p style="background: #fff; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; font-size: 16px;">
+        💡 測試功能專用文字：你可以用滑鼠圈選這段文字中的任何部分（例如「日本三大花火大會」或「想看長岡煙火」），放開滑鼠後旁邊會自動跳出一個 Send 按鈕，點擊就能直接把文字發送給 AI 探險家喔！
+    </p>
+
     <div class="agent-wrapper" id="agentContainer">
         <sv-agent
           id="perxonaAgent"
@@ -152,6 +182,8 @@
     </div>
 
     <div id="globalDragHandle"></div>
+
+    <button id="textSendBadge">🚀 Send to AI</button>
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
@@ -184,14 +216,16 @@
         const agentEl = document.getElementById('perxonaAgent');
         const agentContainer = document.getElementById('agentContainer');
         const dragHandle = document.getElementById('globalDragHandle');
+        const textSendBadge = document.getElementById('textSendBadge');
 
         let currentX = 0;
         let currentY = 0;
         let lastX = 0;
         let lastY = 0;
+        let selectedTextStore = ""; // 用來存儲被圈選的文字
 
         // ========================================================
-        // 智慧型行程視窗平行對齊演算法
+        // 維持原樣：智慧型行程視窗平行對齊演算法
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
@@ -210,7 +244,7 @@
         }
 
         // ========================================================
-        // 方案 B 全域監聽
+        // 維持原樣：方案 B 全域監聽
         // ========================================================
         window.addEventListener('click', (event) => {
             const path = event.composedPath();
@@ -234,19 +268,97 @@
 
 
         // ========================================================
-        // 🚀 全域防滑出拖曳演算機制
+        // 🚀 新增：全域文字選擇監聽與自動發送核心引擎
+        // ========================================================
+        window.addEventListener('mouseup', (e) => {
+            // 如果點擊到的是 Send 按鈕本身，不要執行文字重新檢查，交給按鈕自己的 click 事件處理
+            if (e.target === textSendBadge) return;
+
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+
+            // 如果選取的文字不為空，且不是在手把或元件上操作
+            if (selectedText.length > 0 && !isDragging) {
+                selectedTextStore = selectedText; // 快照儲存文字
+                
+                // 讓按鈕顯示在滑鼠放開的位置上方 30 像素
+                textSendBadge.style.left = `${e.clientX - 40}px`;
+                textSendBadge.style.top = `${e.clientY - 40}px`;
+                textSendBadge.style.display = 'block';
+            } else {
+                // 如果點選空地方，隱藏 Send 按鈕
+                textSendBadge.style.display = 'none';
+            }
+        });
+
+        // 點擊 "Send" 按鈕時的接力注入邏輯
+        textSendBadge.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡
+            textSendBadge.style.display = 'none'; // 隱藏自己
+
+            if (!selectedTextStore) return;
+
+            // 1. 如果 Agent 視窗還沒開，先觸發開關讓它回到右下角原生位置展開
+            if (agentEl && agentEl.offsetHeight < 150) {
+                forceResetToDefaultCorner();
+                dragHandle.style.pointerEvents = 'none';
+                
+                const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                if (clickTarget) clickTarget.click();
+                
+                window.dispatchEvent(new Event('resize'));
+                setTimeout(matchAgentPosition, 120);
+                
+                setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
+            }
+
+            // 2. 深度穿透 Shadow DOM，將文字注入 Perxona 的輸入框內
+            // 由於非原生 DOM 加載需要一小段時間渲染，我們給予 300 毫秒延遲確保輸入框已出生
+            setTimeout(() => {
+                if (agentEl && agentEl.shadowRoot) {
+                    // 自動尋找 Shadow DOM 內常見的輸入控制項 (textarea 或 contenteditable 元素)
+                    const inputField = agentEl.shadowRoot.querySelector('textarea') || 
+                                       agentEl.shadowRoot.querySelector('[contenteditable="true"]') ||
+                                       agentEl.shadowRoot.querySelector('input[type="text"]');
+                    
+                    if (inputField) {
+                        inputField.focus();
+                        
+                        if (inputField.tagName === 'TEXTAREA' || inputField.tagName === 'INPUT') {
+                            inputField.value = selectedTextStore;
+                        } else {
+                            inputField.innerText = selectedTextStore;
+                        }
+
+                        // 💡 關鍵保險：向元件發送 Input 事件通知，確保 Perxona SDK 內部狀態機同步抓到文字
+                        const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+                        inputField.dispatchEvent(inputEvent);
+
+                        // 智慧型自動送出：嘗試尋找旁邊的送出按鈕 (通常是 button 或 svg 箭頭)
+                        setTimeout(() => {
+                            const sendBtn = agentEl.shadowRoot.querySelector('button[type="submit"]') || 
+                                            agentEl.shadowRoot.querySelector('button') ||
+                                            agentEl.shadowRoot.querySelector('[class*="send"]');
+                            if (sendBtn) {
+                                sendBtn.click(); // 自動幫使用者送出對話！
+                            }
+                        }, 100);
+                    } else {
+                        // 備用防線：如果特殊元件找不到輸入框，直接將文字複製到剪貼簿，方便使用者 Ctrl+V
+                        navigator.clipboard.writeText(selectedTextStore);
+                        alert(`已將選取文字自動複製：「${selectedTextStore}」，可直接貼進對話框！`);
+                    }
+                }
+            }, 300);
+        });
+
+
+        // ========================================================
+        // 維持原樣：全域防滑出拖曳演算機制 (基於上一版完美的基礎)
         // ========================================================
         let isDragging = false;
         let startX, startY;
         let hasMoved = false;
-
-        function forceResetToDefaultCorner() {
-            agentContainer.style.transition = 'none';
-            dragHandle.style.transition = 'none';
-            agentContainer.style.transform = 'none';
-            dragHandle.style.transform = 'none';
-            currentX = currentY = lastX = lastY = 0;
-        }
 
         function startDrag(e) {
             if (agentEl && agentEl.offsetHeight > 150) return;
@@ -306,7 +418,6 @@
             dragHandle.classList.remove('dragging-active');
 
             if (!hasMoved) {
-                // 情況一：使用者點擊（想開啟視窗）
                 forceResetToDefaultCorner();
                 dragHandle.style.pointerEvents = 'none'; 
                 
@@ -316,7 +427,6 @@
                         clickTarget.click(); 
                     }
                     
-                    // 觸發全域重繪，讓 Canvas 順暢加載成功
                     window.dispatchEvent(new Event('resize'));
 
                     setTimeout(() => {
@@ -327,11 +437,9 @@
                 setTimeout(matchAgentPosition, 120);
                 
             } else {
-                // 情況二：使用者是真正的拖曳結束
                 lastX = currentX;
                 lastY = currentY;
                 
-                // 💡 【精準修復點】：放開滑鼠時，必須強迫手把與 Agent 容器同時套用最新的 last 變形坐標，防止下次拖曳失控！
                 const finalStyle = `translate(${lastX}px, ${lastY}px)`;
                 agentContainer.style.transform = finalStyle;
                 dragHandle.style.transform = finalStyle;
