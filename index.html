@@ -15,15 +15,6 @@
         }
         h1 { color: #2c3e50; }
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
-#widget-container {
-    display: flex;
-    position: relative;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    height: 880px;
-    width: 500px;
-  }
     </style>
     <script
       type="module"
@@ -40,6 +31,41 @@
       presentationMode="bubble"
       apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
     ></sv-agent>
+
+    <script>
+      // 確保網頁內容都載入完成後再執行
+      window.addEventListener('DOMContentLoaded', () => {
+        // 選擇網頁中的 <sv-agent> 元素
+        const widget = document.querySelector('sv-agent');
+
+        // 設定外觀與行為參數
+        const layoutConfig = {
+          presentationMode: 'bubble',
+          readyToShowPolicy: 'showWhenAssetsReady',
+          displayMode: 'fullPresentation',
+          conversationMode: 'inputText',
+          initFov: { distance: 1, horizontal: 0, vertical: 0 },
+          cameraAngle: 'fullBody',
+          colorMode: 'light',
+          colorTheme: {
+            primary: {
+              light: '#fff',
+              dark: '#000',
+            },
+          },
+        };
+
+        if (!widget) {
+          console.error('sv-agent widget not found in the DOM.');
+        } else if (typeof widget.updateWidgetSetting !== 'function') {
+          console.error('updateWidgetSetting method is not available on sv-agent element.');
+        } else {
+          console.log('sv-agent is ready to use.');
+          // 正式套用設定
+          widget.updateWidgetSetting(layoutConfig);
+        }
+      });
+    </script>
 
 </body>
 </html>
