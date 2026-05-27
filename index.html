@@ -282,7 +282,7 @@
             }
         });
 
-        // 💡 終極直發核心：穿透並以 React 原生事件強制注入發送
+        // 💡 必勝直發核心：繞過 React 事件，調用瀏覽器底層原生指令強行塞字並送出
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
@@ -303,9 +303,9 @@
                 setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
             }
 
-            // 💡 2. 深度穿透並採用 React 虛擬 DOM 事件注入
+            // 💡 2. 深度穿透輪詢器
             let retryCount = 0;
-            const maxRetries = 30; 
+            const maxRetries = 35; 
 
             const injectPollInterval = setInterval(() => {
                 retryCount++;
@@ -314,6 +314,7 @@
                     return;
                 }
 
+                // 穿透所有 Shadow DOM 尋找輸入節點
                 function findPerxonaInput(root) {
                     if (!root) return null;
                     const target = root.querySelector('[contenteditable="true"]') || 
@@ -333,30 +334,17 @@
 
                 const inputNode = findPerxonaInput(agentEl.shadowRoot);
 
+                // 🎯 抓到輸入節點了！執行底層強行貼上
                 if (inputNode) {
                     clearInterval(injectPollInterval); 
                     
                     inputNode.focus();
                     
-                    // 💡 【核心突破】：清除目前節點內容，直接用真實的 InputEvent 將文字當作使用者親自打字塞進去！
-                    inputNode.innerText = "";
+                    // 清空原本的 placeholder
+                    inputNode.innerHTML = ""; 
                     
-                    // 這行是破除 React 狀態清空的最高級手段：模擬 insertText 動作
-                    const textEvent = new InputEvent('input', {
-                        bubbles: true,
-                        cancelable: true,
-                        composed: true,
-                        inputType: 'insertText',
-                        data: selectedTextStore
-                    });
-                    
-                    // 先把文字硬塞進節點，隨後立刻用事件強制 React 核心吃下它
-                    if (inputNode.tagName === 'INPUT' || inputNode.tagName === 'TEXTAREA') {
-                        inputNode.value = selectedTextStore;
-                    } else {
-                        inputNode.innerText = selectedTextStore;
-                    }
-                    inputNode.dispatchEvent(textEvent);
+                    // 💡 【大招】：改用瀏覽器底層的命令，這會強迫 React 去捕捉並更新狀態，絕對不會被洗掉！
+                    document.execCommand('insertText', false, selectedTextStore);
 
                     // 🚀 物理發送：發送虛擬的 Enter 鍵直接把訊息發射出去
                     setTimeout(() => {
@@ -364,7 +352,7 @@
                         const enterKeyUp = new KeyboardEvent('keyup', { keyCode: 13, key: 'Enter', code: 'Enter', bubbles: true, composed: true });
                         inputNode.dispatchEvent(enterKeyDown);
                         inputNode.dispatchEvent(enterKeyUp);
-                    }, 60);
+                    }, 80);
                 }
             }, 60); 
         });
