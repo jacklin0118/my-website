@@ -121,7 +121,6 @@
             will-change: transform;
         }
 
-        /* 當滑鼠抓著拖曳時，手把瞬間變全螢幕，防止滑鼠滑出界而漏抓閃爍 */
         #globalDragHandle.dragging-active {
             top: 0 !important;
             left: 0 !important;
@@ -154,8 +153,28 @@
             background-color: #34495e;
             transform: scale(1.05);
         }
-        #textSendBadge:active {
-            transform: scale(0.95);
+
+        /* 💡 新增：更加精緻亮眼的複製引導提示泡泡 */
+        #copyToastTip {
+            display: none;
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            z-index: 100050;
+            animation: bounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes bounceIn {
+            0% { transform: translate(-50%, -40px) scale(0.8); opacity: 0; }
+            100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
         }
     </style>
     <script
@@ -184,6 +203,7 @@
     <div id="globalDragHandle"></div>
 
     <button id="textSendBadge">🚀 Send to AI</button>
+    <div id="copyToastTip">📋 文字已自動複製！請在右下角對話框直接「貼上」發送 🚀</div>
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
@@ -217,6 +237,7 @@
         const agentContainer = document.getElementById('agentContainer');
         const dragHandle = document.getElementById('globalDragHandle');
         const textSendBadge = document.getElementById('textSendBadge');
+        const copyToastTip = document.getElementById('copyToastTip');
 
         let currentX = 0;
         let currentY = 0;
@@ -286,86 +307,35 @@
             }
         });
 
-        // 💡 深度深度精準修復：遞迴穿透所有巢狀 Shadow DOM 的尋找發送機制
+        // 💡 終極必勝接力機制：快取剪貼簿與視覺智慧引導
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
 
             if (!selectedTextStore) return;
 
-            // 1. 如果視窗沒開，立刻在右下角預設初始點爆開對話框
-            if (agentEl && agentEl.offsetHeight < 150) {
-                forceResetToDefaultCorner();
-                dragHandle.style.pointerEvents = 'none';
-                
-                const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                if (clickTarget) clickTarget.click();
-                
-                window.dispatchEvent(new Event('resize'));
-                setTimeout(matchAgentPosition, 120);
-                
-                setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
-            }
+            // 1. 無視 Canvas 的程式碼死鎖，直接把選取文字存入使用者系統剪貼簿
+            navigator.clipboard.writeText(selectedTextStore).then(() => {
+                // 2. 顯示頂部精美的操作提示泡泡
+                copyToastTip.style.display = 'block';
+                setTimeout(() => { copyToastTip.style.display = 'none'; }, 4000);
 
-            // 💡 核心深度遞迴穿透函式：不論 Perxona 將輸入框埋了多少層 ShadowDOM，一定能自動挖出來！
-            function findInputDeep(root) {
-                if (!root) return null;
-                
-                // 嘗試在當前層級抓取輸入框
-                const found = root.querySelector('input') || 
-                              root.querySelector('textarea') || 
-                              root.querySelector('[placeholder*="question"]') || 
-                              root.querySelector('[contenteditable="true"]');
-                if (found) return found;
-
-                // 如果當前層沒找到，深度掃描所有帶有 shadowRoot 的子節點
-                const children = root.querySelectorAll('*');
-                for (let i = 0; i < children.length; i++) {
-                    if (children[i].shadowRoot) {
-                        const deepFound = findInputDeep(children[i].shadowRoot);
-                        if (deepFound) return deepFound;
-                    }
-                }
-                return null;
-            }
-
-            // 執行文字無縫注入
-            setTimeout(() => {
-                if (agentEl && agentEl.shadowRoot) {
-                    const realInput = findInputDeep(agentEl.shadowRoot);
+                // 3. 如果對話視窗還沒開，流暢歸位並立刻點開它
+                if (agentEl && agentEl.offsetHeight < 150) {
+                    forceResetToDefaultCorner();
+                    dragHandle.style.pointerEvents = 'none';
                     
-                    if (realInput) {
-                        realInput.focus();
-
-                        // 同步寫入值
-                        if (realInput.tagName === 'INPUT' || realInput.tagName === 'TEXTAREA') {
-                            realInput.value = selectedTextStore;
-                        } else {
-                            realInput.innerText = selectedTextStore;
-                        }
-
-                        // 💡 重要：同時觸發這四個瀏覽器核心原生事件，強迫框架吸收新內容
-                        realInput.dispatchEvent(new Event('input', { bubbles: true }));
-                        realInput.dispatchEvent(new Event('change', { bubbles: true }));
-                        realInput.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }));
-                        realInput.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'Enter' }));
-
-                        // 自動尋找輸入框旁邊的「發送箭頭圖示按鈕」
-                        setTimeout(() => {
-                            const root = agentEl.shadowRoot;
-                            // 自動對整個組件內的所有按鈕或 svg 發送點擊，直到觸發對話送出
-                            const allButtons = root.querySelectorAll('button, [class*="send"], svg');
-                            allButtons.forEach(btn => {
-                                if(btn.offsetHeight > 0) btn.click();
-                            });
-                        }, 150);
-                    } else {
-                        // 終極防護線：如果防禦太強就備用複製到剪貼簿
-                        navigator.clipboard.writeText(selectedTextStore);
-                        alert(`已自動為您複製文字，請直接在對話框內貼上 (Ctrl+V) 發送：\n「${selectedTextStore}」`);
-                    }
+                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                    if (clickTarget) clickTarget.click();
+                    
+                    window.dispatchEvent(new Event('resize'));
+                    setTimeout(matchAgentPosition, 120);
+                    
+                    setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
                 }
-            }, 500); // 稍微拉長到 500ms，保證 3D 面板與輸入框元素 100% 長出來
+            }).catch(err => {
+                console.error("剪貼簿讀取失敗: ", err);
+            });
         });
 
 
