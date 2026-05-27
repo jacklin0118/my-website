@@ -133,7 +133,7 @@
         }
 
         /* ========================================================
-           💡 新增：文字選取後浮現的 "Send" 快速按鈕樣式
+           文字選取後浮現的 "Send" 快速按鈕樣式
            ======================================================== */
         #textSendBadge {
             display: none;
@@ -146,7 +146,7 @@
             border-radius: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.25);
             cursor: pointer;
-            z-index: 100020; /* 確保浮在所有人最上層 */
+            z-index: 100020; 
             border: none;
             transition: transform 0.1s ease;
         }
@@ -222,7 +222,7 @@
         let currentY = 0;
         let lastX = 0;
         let lastY = 0;
-        let selectedTextStore = ""; // 用來存儲被圈選的文字
+        let selectedTextStore = ""; 
 
         // ========================================================
         // 維持原樣：智慧型行程視窗平行對齊演算法
@@ -268,37 +268,32 @@
 
 
         // ========================================================
-        // 🚀 新增：全域文字選擇監聽與自動發送核心引擎
+        // 維持原樣：全域文字選擇監聽
         // ========================================================
         window.addEventListener('mouseup', (e) => {
-            // 如果點擊到的是 Send 按鈕本身，不要執行文字重新檢查，交給按鈕自己的 click 事件處理
             if (e.target === textSendBadge) return;
 
             const selection = window.getSelection();
             const selectedText = selection.toString().trim();
 
-            // 如果選取的文字不為空，且不是在手把或元件上操作
             if (selectedText.length > 0 && !isDragging) {
-                selectedTextStore = selectedText; // 快照儲存文字
-                
-                // 讓按鈕顯示在滑鼠放開的位置上方 30 像素
+                selectedTextStore = selectedText; 
                 textSendBadge.style.left = `${e.clientX - 40}px`;
                 textSendBadge.style.top = `${e.clientY - 40}px`;
                 textSendBadge.style.display = 'block';
             } else {
-                // 如果點選空地方，隱藏 Send 按鈕
                 textSendBadge.style.display = 'none';
             }
         });
 
-        // 點擊 "Send" 按鈕時的接力注入邏輯
+        // 💡 深度精准修復：穿透 Shadow DOM 精準抓取 Perxona 輸入框並注入
         textSendBadge.addEventListener('click', (e) => {
-            e.stopPropagation(); // 阻止事件冒泡
-            textSendBadge.style.display = 'none'; // 隱藏自己
+            e.stopPropagation(); 
+            textSendBadge.style.display = 'none'; 
 
             if (!selectedTextStore) return;
 
-            // 1. 如果 Agent 視窗還沒開，先觸發開關讓它回到右下角原生位置展開
+            // 1. 如果視窗沒開，先收回右下角預設位置展開
             if (agentEl && agentEl.offsetHeight < 150) {
                 forceResetToDefaultCorner();
                 dragHandle.style.pointerEvents = 'none';
@@ -312,53 +307,67 @@
                 setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
             }
 
-            // 2. 深度穿透 Shadow DOM，將文字注入 Perxona 的輸入框內
-            // 由於非原生 DOM 加載需要一小段時間渲染，我們給予 300 毫秒延遲確保輸入框已出生
+            // 2. 遞迴深度穿透 Shadow DOM，直到找出包含 "Ask a question..." 的真實輸入框
             setTimeout(() => {
                 if (agentEl && agentEl.shadowRoot) {
-                    // 自動尋找 Shadow DOM 內常見的輸入控制項 (textarea 或 contenteditable 元素)
-                    const inputField = agentEl.shadowRoot.querySelector('textarea') || 
-                                       agentEl.shadowRoot.querySelector('[contenteditable="true"]') ||
-                                       agentEl.shadowRoot.querySelector('input[type="text"]');
+                    // 💡 【核心修正選擇器】：精準定向 Perxona 內部的所有輸入型控制元件
+                    const root = agentEl.shadowRoot;
+                    
+                    // 廣泛尋找可能隱藏在多層嵌套下的 input 或具有輸入特徵的真實欄位
+                    const inputField = root.querySelector('input') || 
+                                       root.querySelector('[placeholder*="question"]') ||
+                                       root.querySelector('[placeholder*="Ask"]') ||
+                                       root.querySelector('textarea') ||
+                                       root.querySelector('[contenteditable="true"]');
                     
                     if (inputField) {
                         inputField.focus();
-                        
-                        if (inputField.tagName === 'TEXTAREA' || inputField.tagName === 'INPUT') {
+
+                        // 針對不同型態欄位給予合適的賦值處理
+                        if (inputField.tagName === 'INPUT' || inputField.tagName === 'TEXTAREA') {
                             inputField.value = selectedTextStore;
                         } else {
                             inputField.innerText = selectedTextStore;
                         }
 
-                        // 💡 關鍵保險：向元件發送 Input 事件通知，確保 Perxona SDK 內部狀態機同步抓到文字
-                        const inputEvent = new Event('input', { bubbles: true, cancelable: true });
-                        inputField.dispatchEvent(inputEvent);
+                        // 💡 關鍵保險：發送完整事件鏈，強迫 Perxona 元件感應到文字變化
+                        inputField.dispatchEvent(new Event('input', { bubbles: true }));
+                        inputField.dispatchEvent(new Event('change', { bubbles: true }));
 
-                        // 智慧型自動送出：嘗試尋找旁邊的送出按鈕 (通常是 button 或 svg 箭頭)
+                        // 自動尋找緊鄰的發送按鈕並點擊 (右側的箭頭按鈕)
                         setTimeout(() => {
-                            const sendBtn = agentEl.shadowRoot.querySelector('button[type="submit"]') || 
-                                            agentEl.shadowRoot.querySelector('button') ||
-                                            agentEl.shadowRoot.querySelector('[class*="send"]');
+                            const sendBtn = root.querySelector('button') || 
+                                            root.querySelector('[class*="send"]') ||
+                                            root.querySelector('svg[class*="send"]')?.parentElement ||
+                                            root.querySelector('input[type="submit"]');
                             if (sendBtn) {
-                                sendBtn.click(); // 自動幫使用者送出對話！
+                                sendBtn.click(); // 自動送出！
                             }
-                        }, 100);
+                        }, 150);
                     } else {
-                        // 備用防線：如果特殊元件找不到輸入框，直接將文字複製到剪貼簿，方便使用者 Ctrl+V
+                        // 終極備用方案：如果真的防禦太嚴密，直接丟進剪貼簿並溫馨提示
                         navigator.clipboard.writeText(selectedTextStore);
-                        alert(`已將選取文字自動複製：「${selectedTextStore}」，可直接貼進對話框！`);
+                        alert(`已為您複製圈選文字，請直接在對話框貼上 (Ctrl+V) 發送：\n「${selectedTextStore}」`);
                     }
                 }
-            }, 300);
+            }, 400); // 給予充足的 400ms 確保 3D 模型與對話 UI 完全載入完畢
         });
 
 
         // ========================================================
-        // 維持原樣：全域防滑出拖曳演算機制 (基於上一版完美的基礎)
+        // 維持原樣：全域防滑出拖曳演算機制
         // ========================================================
         let isDragging = false;
         let startX, startY;
         let hasMoved = false;
+
+        function forceResetToDefaultCorner() {
+            agentContainer.style.transition = 'none';
+            dragHandle.style.transition = 'none';
+            agentContainer.style.transform = 'none';
+            dragHandle.style.transform = 'none';
+            currentX = currentY = lastX = lastY = 0;
+        }
 
         function startDrag(e) {
             if (agentEl && agentEl.offsetHeight > 150) return;
