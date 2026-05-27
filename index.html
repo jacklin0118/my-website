@@ -3,186 +3,134 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Draggable AI Agent</title>
-
-    <script
-      type="module"
-      src="https://cdn.perxona.ai/asia/prod/latest/widget/entry/index.js"
-    ></script>
-
+    <title>My Personal Website</title>
     <style>
         body {
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 40px;
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            min-height: 200vh;
-        }
-
-        h1 {
+            background-color: #f4f4f9;
             color: #333;
+            text-align: center;
         }
+        h1 { color: #2c3e50; }
+        p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
-        p {
-            max-width: 700px;
-            line-height: 1.6;
-        }
-
-        /* ======================================================
-           Agent 外層容器（真正被拖曳的是它）
-           ====================================================== */
+        /* ========================================================
+           1. 專屬外容器：不綁死寬高，固定在右下角作為基準起點
+           ======================================================== */
         .agent-container {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-
-            width: 100px;
-            height: 100px;
-
+            position: fixed !important;
+            bottom: 20px; 
+            right: 20px;  
+            width: 100px;  
+            height: 100px; 
             z-index: 99999;
-
             touch-action: none;
         }
 
-        /* ======================================================
-           sv-agent 不要再 fixed
-           ====================================================== */
+        /* 強迫 Agent 元素接受我們的平移 */
         sv-agent {
-            display: block;
-            width: 100%;
-            height: 100%;
+            display: block !important;
+            width: 100px !important;
+            height: 100px !important;
         }
 
-        /* ======================================================
-           小型拖曳按鈕
-           ====================================================== */
+        /* 💡 核心修正：改用 absolute 鎖定在 container 內，確保物理點擊判定會隨拖曳同步移動 */
         .drag-handle {
             position: absolute;
-
-            top: -8px;
-            left: -8px;
-
-            width: 26px;
-            height: 26px;
-
-            background: #ff4081;
+            top: 0;
+            left: 0;
+            width: 100%;      
+            height: 100%;     
             border-radius: 50%;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-
-            cursor: grab;
-
-            z-index: 100000;
-
-            user-select: none;
+            background: rgba(0, 0, 0, 0); /* 保持完全透明 */
+            border: none;
+            cursor: move;     
+            z-index: 100005;  /* 絕對最上層，優先被滑鼠捕獲 */
         }
 
-        .drag-handle:active {
-            cursor: grabbing;
-        }
-
-        /* ======================================================
-           Demo popup
-           ====================================================== */
-        .popup {
+        /* ========================================================
+           2. 行程卡片視窗
+           ======================================================== */
+        .itinerary-popup {
+            display: none; 
             position: fixed;
-
-            top: 80px;
-            right: 140px;
-
-            width: 420px;
-
-            background: white;
+            background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
             border-radius: 20px;
-
-            padding: 24px;
-
-            box-shadow:
-                0 10px 30px rgba(0,0,0,0.15);
-
-            display: none;
-
-            z-index: 99998;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            z-index: 99998;      
+            padding: 30px;
+            box-sizing: border-box;
+            text-align: left;
+            overflow-y: auto;
+            
+            width: 55vw;
+            max-width: 820px;
+            min-width: 450px;
+            
+            animation: fadeIn 0.3s ease-out; 
         }
 
-        .popup.show {
-            display: block;
-        }
-
-        .popup h2 {
-            margin-top: 0;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         .close-btn {
             position: absolute;
-            right: 18px;
-            top: 14px;
-
+            top: 15px;
+            right: 25px;
+            font-size: 28px;
             cursor: pointer;
-            font-size: 24px;
+            color: #555;
         }
 
         .card-container {
             display: flex;
-            gap: 12px;
-            margin-top: 18px;
+            gap: 15px;
+            margin-top: 20px;
         }
-
         .card {
+            background: white;
             flex: 1;
-            background: #fafafa;
             border-radius: 12px;
             overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
-
         .card img {
             width: 100%;
-            height: 120px;
+            height: 140px;
             object-fit: cover;
         }
-
         .card-body {
             padding: 12px;
         }
-
         .card-title {
             font-size: 13px;
             font-weight: bold;
             margin-bottom: 8px;
+            color: #333;
         }
-
         .card-price {
             color: #e91e63;
             font-weight: bold;
+            font-size: 14px;
         }
     </style>
+    <script
+      type="module"
+      src="https://cdn.perxona.ai/asia/prod/latest/widget/entry/index.js"
+    ></script>
 </head>
 <body>
 
-    <h1>Welcome to My Website</h1>
+    <h1>Welcome to My Personal Website!</h1>
+    <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
-    <p>
-        This is a demo page with a draggable AI assistant.
-        You can drag the pink button to move the AI bubble.
-    </p>
-
-    <!-- ======================================================
-         Agent Container
-         ====================================================== -->
-    <div class="agent-container" id="agentContainer">
-
-        <!-- 拖曳按鈕 -->
-        <div class="drag-handle" id="dragHandle">
-            ↕
-        </div>
-
-        <!-- Perxona Agent -->
+    <div class="agent-container" id="agentWrapper">
+        <div class="drag-handle" id="dragHandle"></div>
+        
         <sv-agent
           id="perxonaAgent"
           agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
@@ -191,170 +139,180 @@
         ></sv-agent>
     </div>
 
-    <!-- ======================================================
-         Popup
-         ====================================================== -->
-    <div class="popup" id="popup">
-        <div class="close-btn" id="closeBtn">&times;</div>
-
-        <h2>日本三大花火大會</h2>
-
-        <p>
-            如果你想看日本三大花火大會之一的長岡煙火，
-            現在有不同的行程可以選擇。
+    <div class="itinerary-popup" id="itineraryWindow">
+        <span class="close-btn" id="closeItineraryBtn">&times;</span>
+        <h2>想看日本三大花火大會 (3)</h2>
+        <p style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; font-size: 15px; line-height: 1.5;">
+            如果你想看日本三大花火大會之一的長岡煙火，現在有不同的行程可以選擇，包括一日直達A區觀賞席、兩天一夜B區觀賞席加溫泉住宿，還有三天的彌彥神社巡禮和煙火體驗，讓你輕鬆享受壯觀的煙火盛會。
         </p>
-
+        
         <div class="card-container">
-
             <div class="card">
-                <img src="https://images.unsplash.com/photo-1533105079780-92b9be482077?w=500">
-
+                <img src="https://images.unsplash.com/photo-1533105079780-92b9be482077?w=500" alt="煙火">
                 <div class="card-body">
-                    <div class="card-title">
-                        長岡煙火 A區觀賞席
-                    </div>
-
-                    <div class="card-price">
-                        TWD 5,500 起
-                    </div>
+                    <div class="card-title">【保證有位】日本三大花火長岡煙火A區觀賞 | 直達會場接駁</div>
+                    <div class="card-price">TWD 5,500 起</div>
                 </div>
             </div>
-
             <div class="card">
-                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500">
-
+                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500" alt="煙火">
                 <div class="card-body">
-                    <div class="card-title">
-                        長岡煙火 B區觀賞席
-                    </div>
-
-                    <div class="card-price">
-                        TWD 12,500 起
-                    </div>
+                    <div class="card-title">【保證有位】日本三大花火長岡煙火B區觀賞席 | 市區散策 + ...</div>
+                    <div class="card-price">TWD 12,500 起</div>
                 </div>
             </div>
-
         </div>
     </div>
 
     <script>
-        const container = document.getElementById('agentContainer');
+        const itineraryWindow = document.getElementById('itineraryWindow');
+        const closeItineraryBtn = document.getElementById('closeItineraryBtn');
         const dragHandle = document.getElementById('dragHandle');
+        const agentWrapper = document.getElementById('agentWrapper');
+        const agentEl = document.getElementById('perxonaAgent');
 
-        const popup = document.getElementById('popup');
-        const closeBtn = document.getElementById('closeBtn');
+        // ========================================================
+        // 智慧型對齊演算法：固定完美靠右與平行
+        // ========================================================
+        function matchAgentPosition() {
+            if (itineraryWindow.style.display !== 'block') return;
 
-        // ======================================================
-        // 拖曳功能
-        // ======================================================
+            const gapX = 15;
+            const expandedAgentWidth = 400; 
+            
+            itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
+            itineraryWindow.style.left = 'auto';
 
-        let isDragging = false;
+            const desiredTop = 80;  
+            const desiredHeight = window.innerHeight - desiredTop - 120; 
 
-        let offsetX = 0;
-        let offsetY = 0;
-
-        function startDrag(e) {
-            isDragging = true;
-
-            const clientX =
-                e.clientX || e.touches[0].clientX;
-
-            const clientY =
-                e.clientY || e.touches[0].clientY;
-
-            const rect =
-                container.getBoundingClientRect();
-
-            offsetX = clientX - rect.left;
-            offsetY = clientY - rect.top;
-
-            // 把 fixed 的 right/bottom 轉成 left/top
-            container.style.left = rect.left + 'px';
-            container.style.top = rect.top + 'px';
-
-            container.style.right = 'auto';
-            container.style.bottom = 'auto';
-
-            e.preventDefault();
+            itineraryWindow.style.top = desiredTop + 'px';
+            itineraryWindow.style.height = desiredHeight + 'px';
         }
 
-        function drag(e) {
+        // ========================================================
+        // 方案 B：全域點擊穿透監聽（當季小黃瓜照片）
+        // ========================================================
+        window.addEventListener('click', (event) => {
+            const path = event.composedPath();
+            const hasClickedCucumber = path.some(element => {
+                return element.textContent && element.textContent.trim() === '當季小黃瓜照片';
+            });
+
+            if (hasClickedCucumber) {
+                resetAgentPosition(); // 強制歸位
+                itineraryWindow.style.display = 'block';
+                setTimeout(matchAgentPosition, 150);
+                event.stopPropagation(); 
+            }
+        });
+
+        closeItineraryBtn.addEventListener('click', () => {
+            itineraryWindow.style.display = 'none';
+        });
+
+        window.addEventListener('resize', matchAgentPosition);
+
+
+        // ========================================================
+        // 3. 全球最穩：Container 層級變形拖曳演算法
+        // ========================================================
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0; 
+        let currentY = 0; 
+        let lastX = 0;
+        let lastY = 0;
+        let hasMoved = false;
+
+        // 一鍵吸回右下角的重置函式
+        function resetAgentPosition() {
+            agentWrapper.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+            agentWrapper.style.transform = 'translate(0px, 0px)';
+            
+            currentX = 0;
+            currentY = 0;
+            lastX = 0;
+            lastY = 0;
+        }
+
+        function startDrag(e) {
+            // 面板拉長展開時鎖定拖曳
+            if (agentEl && agentEl.offsetHeight > 150) return;
+
+            isDragging = true;
+            hasMoved = false;
+
+            const clientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
+            const clientY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
+            
+            startX = clientX;
+            startY = clientY;
+
+            agentWrapper.style.transition = 'none'; // 移動時關閉過渡，保證無延遲
+            
+            if(e.cancelable) e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function doDrag(e) {
             if (!isDragging) return;
+            
+            const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
 
-            const clientX =
-                e.clientX || e.touches[0].clientX;
+            const deltaX = clientX - startX;
+            const deltaY = clientY - startY;
 
-            const clientY =
-                e.clientY || e.touches[0].clientY;
+            if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+                hasMoved = true;
+            }
 
-            let newLeft = clientX - offsetX;
-            let newTop = clientY - offsetY;
+            currentX = lastX + deltaX;
+            currentY = lastY + deltaY;
 
-            // 防止超出畫面
-            newLeft = Math.max(
-                0,
-                Math.min(window.innerWidth - 100, newLeft)
-            );
+            // 安全邊界：防止大頭貼不小心被甩出視窗邊緣
+            const rect = dragHandle.getBoundingClientRect();
+            if (rect.left + deltaX < 0 || rect.right + deltaX > window.innerWidth) currentX = lastX;
+            if (rect.top + deltaY < 0 || rect.bottom + deltaY > window.innerHeight) currentY = lastY;
 
-            newTop = Math.max(
-                0,
-                Math.min(window.innerHeight - 100, newTop)
-            );
-
-            container.style.left = newLeft + 'px';
-            container.style.top = newTop + 'px';
+            // 💡 直接對整組 Wrapper 容器進行 transform 平移，手把跟大頭貼一體化連動！
+            agentWrapper.style.transform = `translate(${currentX}px, ${currentY}px)`;
         }
 
         function endDrag() {
+            if (!isDragging) return;
             isDragging = false;
+
+            lastX = currentX;
+            lastY = currentY;
+
+            // 如果沒有位移（單純輕點），代表使用者要跟 AI 說話
+            if (!hasMoved) {
+                // 滑順吸回右下角
+                resetAgentPosition();
+
+                // 穿透透明按鈕，讓 Perxona 原生按鈕被點到
+                setTimeout(() => {
+                    dragHandle.style.pointerEvents = 'none';
+                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                    if (clickTarget) clickTarget.click();
+                    setTimeout(() => {
+                        dragHandle.style.pointerEvents = 'auto';
+                    }, 200);
+                }, 150);
+            }
         }
 
-        // Desktop
-        dragHandle.addEventListener(
-            'mousedown',
-            startDrag
-        );
+        // 全域託管監聽，滑鼠拉太快也不會脫鉤
+        dragHandle.addEventListener('mousedown', startDrag);
+        window.addEventListener('mousemove', doDrag);
+        window.addEventListener('mouseup', endDrag);
 
-        window.addEventListener(
-            'mousemove',
-            drag
-        );
-
-        window.addEventListener(
-            'mouseup',
-            endDrag
-        );
-
-        // Mobile
-        dragHandle.addEventListener(
-            'touchstart',
-            startDrag,
-            { passive: false }
-        );
-
-        window.addEventListener(
-            'touchmove',
-            drag,
-            { passive: false }
-        );
-
-        window.addEventListener(
-            'touchend',
-            endDrag
-        );
-
-        // ======================================================
-        // Demo popup
-        // ======================================================
-
-        // 假裝 agent 回覆觸發 popup
-        setTimeout(() => {
-            popup.classList.add('show');
-        }, 3000);
-
-        closeBtn.addEventListener('click', () => {
-            popup.classList.remove('show');
-        });
+        dragHandle.addEventListener('touchstart', startDrag, { passive: false });
+        window.addEventListener('touchmove', doDrag, { passive: false });
+        window.addEventListener('touchend', endDrag);
     </script>
 
 </body>
