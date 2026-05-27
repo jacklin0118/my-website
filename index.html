@@ -154,7 +154,7 @@
             transform: scale(1.05);
         }
 
-        /* 💡 新增：最上層耀眼的高光提示橫條 */
+        /* 萬一官方 API 名稱變更時的智慧型備用提示條 */
         #smartNoticeBar {
             display: none;
             position: fixed;
@@ -162,7 +162,7 @@
             left: 50%;
             transform: translateX(-50%);
             background: linear-gradient(135deg, #111111 0%, #2c3e50 100%);
-            color: #00ffcc; /* 高科技感螢光綠 */
+            color: #00ffcc; 
             padding: 12px 28px;
             border-radius: 30px;
             font-size: 15px;
@@ -308,33 +308,55 @@
             }
         });
 
-        // 💡 終極必勝接力機制：快取剪貼簿與強效視覺引導
+        // 💡 呼叫官方 Widget 隱藏暗號機制
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
 
             if (!selectedTextStore) return;
 
-            // 1. 繞過所有沙盒限制，直接將文字存入剪貼簿
-            navigator.clipboard.writeText(selectedTextStore).then(() => {
-                // 2. 彈出頂部極度耀眼的引導橫條
-                smartNoticeBar.style.display = 'block';
-                setTimeout(() => { smartNoticeBar.style.display = 'none'; }, 5000);
+            // 1. 如果視窗沒開，立刻在右下角預設初始點爆開對話框
+            if (agentEl && agentEl.offsetHeight < 150) {
+                forceResetToDefaultCorner();
+                dragHandle.style.pointerEvents = 'none';
+                const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                if (clickTarget) clickTarget.click();
+                window.dispatchEvent(new Event('resize'));
+                setTimeout(matchAgentPosition, 120);
+                setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
+            }
 
-                // 3. 強迫 Agent 流暢回歸右下角出生點，並立刻點開
-                if (agentEl && agentEl.offsetHeight < 150) {
-                    forceResetToDefaultCorner();
-                    dragHandle.style.pointerEvents = 'none';
-                    
-                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                    if (clickTarget) clickTarget.click();
-                    
-                    window.dispatchEvent(new Event('resize'));
-                    setTimeout(matchAgentPosition, 120);
-                    
-                    setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
+            // 2. 異步嘗試官方 API 通訊
+            setTimeout(() => {
+                if (agentEl) {
+                    let apiSuccess = false;
+
+                    // 嘗試 A：標準自訂 Method 呼叫
+                    if (typeof agentEl.sendMessage === 'function') {
+                        agentEl.sendMessage(selectedTextStore);
+                        apiSuccess = true;
+                    } else if (agentEl.service && typeof agentEl.service.sendMessage === 'function') {
+                        agentEl.service.sendMessage(selectedTextStore);
+                        apiSuccess = true;
+                    } else if (agentEl.agent && typeof agentEl.agent.send === 'function') {
+                        agentEl.agent.send(selectedTextStore);
+                        apiSuccess = true;
+                    }
+
+                    // 嘗試 B：屬性綁定變更連動 (Attribute Trigger)
+                    if (!apiSuccess) {
+                        agentEl.setAttribute('value', selectedTextStore);
+                        agentEl.setAttribute('text', selectedTextStore);
+                        agentEl.setAttribute('query', selectedTextStore);
+                        
+                        // 為了保險起見，如果是因為跨網域沙盒被鎖死，則立刻啟動最完美的防禦複製機制，體驗毫不中斷！
+                        navigator.clipboard.writeText(selectedTextStore).then(() => {
+                            smartNoticeBar.style.display = 'block';
+                            setTimeout(() => { smartNoticeBar.style.display = 'none'; }, 4000);
+                        });
+                    }
                 }
-            });
+            }, 350);
         });
 
 
