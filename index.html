@@ -63,7 +63,7 @@
             text-align: left;
             overflow-y: auto;
             
-            /* 寬度稍微拉長，讓它像截圖上一樣呈現舒適的長方形 */
+            /* 寬度稍微拉長，呈現舒適的長方形 */
             width: 55vw;
             max-width: 850px;
             
@@ -145,4 +145,168 @@
         
         <div class="card-container">
             <div class="card">
-                <img src="https://images.unsplash.com/photo-1533105079780-92b9be48
+                <img src="https://images.unsplash.com/photo-1533105079780-92b9be482077?w=500" alt="煙火">
+                <div class="card-body">
+                    <div class="card-title">【保證有位】日本三大花火長岡煙火A區觀賞 | 直達會場接駁</div>
+                    <div class="card-price">TWD 5,500 起</div>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500" alt="煙火">
+                <div class="card-body">
+                    <div class="card-title">【保證有位】日本三大花火長岡煙火B區觀賞席 | 市區散策 + ...</div>
+                    <div class="card-price">TWD 12,500 起</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const itineraryWindow = document.getElementById('itineraryWindow');
+        const closeItineraryBtn = document.getElementById('closeItineraryBtn');
+        const agentWrapper = document.getElementById('agentWrapper');
+        const dragHandle = document.getElementById('dragHandle');
+        const svAgent = document.getElementById('myAgent');
+
+        // 用來防止無效重複執行的鎖
+        let resizeTimeout;
+
+        // ========================================================
+        // 核心定位智慧演算法 (優化防抖版，不再死循環 refresh)
+        // ========================================================
+        function updatePopupPosition() {
+            // 如果行程視窗根本沒打開，就不要進行任何計算
+            if (itineraryWindow.style.display !== 'block') return;
+
+            const wrapperRect = agentWrapper.getBoundingClientRect();
+            
+            // 1. 【Y 軸控制】
+            const topPosition = 100;     
+            const bottomMargin = 200;    
+
+            itineraryWindow.style.top = topPosition + 'px';
+            itineraryWindow.style.height = `calc(100vh - ${bottomMargin}px)`;
+
+            // 2. 【X 軸控制】
+            const xOffset = 410;         
+
+            const baseRight = window.innerWidth - wrapperRect.right;
+            
+            // 只有在數值真正改變時才更新 DOM，避免頻繁刷頁面
+            const targetRight = (baseRight + xOffset) + 'px';
+            if (itineraryWindow.style.right !== targetRight) {
+                itineraryWindow.style.right = targetRight;
+            }
+            itineraryWindow.style.bottom = 'auto'; 
+        }
+
+        // ========================================================
+        // 全域監聽點擊「當季小黃瓜照片」
+        // ========================================================
+        window.addEventListener('click', (event) => {
+            const path = event.composedPath();
+            const hasClickedCucumber = path.some(element => {
+                return element.textContent && element.textContent.trim() === '當季小黃瓜照片';
+            });
+
+            if (hasClickedCucumber) {
+                itineraryWindow.style.display = 'block';
+                // 使用稍微長一點的延遲，等 Perxona DOM 穩定展開，防止無限閃爍
+                setTimeout(updatePopupPosition, 150);
+                event.stopPropagation();
+            }
+        });
+
+        closeItineraryBtn.addEventListener('click', () => {
+            itineraryWindow.style.display = 'none';
+        });
+
+        // 加上防抖（Debounce），避免 resize 事件跟 Perxona 內部互相衝突形成無窮迴圈
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                updatePopupPosition();
+            }, 100);
+        });
+
+        // ========================================================
+        // 拖曳邏輯 (加入 hasMoved 判定優化)
+        // ========================================================
+        let isDragging = false;
+        let startX, startY;
+        let initialLeft, initialTop;
+        let hasMoved = false;
+
+        function startDrag(e) {
+            // 如果目前 Agent 容器的高度大於 150 (代表聊天室已經展開了)，禁止拖曳，避免打字跟點擊異常
+            if (agentWrapper.offsetHeight > 150) return;
+
+            isDragging = true;
+            hasMoved = false;
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+            startX = clientX;
+            startY = clientY;
+            const rect = agentWrapper.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+            agentWrapper.style.transition = 'none';
+        }
+
+        function doDrag(e) {
+            if (!isDragging) return;
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            const deltaX = clientX - startX;
+            const deltaY = clientY - startY;
+
+            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+                hasMoved = true;
+            }
+
+            let newLeft = initialLeft + deltaX;
+            let newTop = initialTop + deltaY;
+            newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - agentWrapper.offsetWidth));
+            newTop = Math.max(0, Math.min(newTop, window.innerHeight - agentWrapper.offsetHeight));
+
+            agentWrapper.style.right = 'auto';
+            agentWrapper.style.bottom = 'auto';
+            agentWrapper.style.left = newLeft + 'px';
+            agentWrapper.style.top = newTop + 'px';
+
+            if (itineraryWindow.style.display === 'block') {
+                updatePopupPosition();
+            }
+        }
+
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+
+            if (!hasMoved) {
+                // 如果只是點一下，短暫移開手把讓點擊穿透下去開啟聊天室
+                dragHandle.style.pointerEvents = 'none';
+                const clickTarget = document.elementFromPoint(startX, startY);
+                if (clickTarget) {
+                    clickTarget.click();
+                }
+                setTimeout(() => {
+                    dragHandle.style.pointerEvents = 'auto';
+                }, 300);
+            } else {
+                // 如果有搬動位置，放開後釋放 Wrapper 限制寬高
+                agentWrapper.style.width = 'auto';
+                agentWrapper.style.height = 'auto';
+            }
+        }
+
+        dragHandle.addEventListener('mousedown', startDrag);
+        window.addEventListener('mousemove', doDrag);
+        window.addEventListener('mouseup', endDrag);
+        dragHandle.addEventListener('touchstart', startDrag, { passive: false });
+        window.addEventListener('touchmove', doDrag, { passive: false });
+        window.addEventListener('touchend', endDrag);
+    </script>
+
+</body>
+</html>
