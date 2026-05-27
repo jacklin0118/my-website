@@ -27,41 +27,10 @@
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
     <sv-agent
-      id="my-agent"
       agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
       presentationMode="bubble"
       apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
     ></sv-agent>
-
-    <script>
-      // 當網頁內容完全載入後才執行設定
-      window.addEventListener('DOMContentLoaded', () => {
-        // 定義你在文件上看到的配置物件
-        const layoutConfig = {
-          presentationMode: 'bubble',
-          readyToShowPolicy: 'showWhenAssetsReady',
-          displayMode: 'fullPresentation',
-          conversationMode: 'inputText',
-          initFov: { distance: 1, horizontal: 0, vertical: 0 },
-          cameraAngle: 'fullBody',
-          colorMode: 'light',
-          colorTheme: {
-            primary: {
-              light: '#fff',
-              dark: '#000',
-            },
-          },
-        };
-
-        // 透過 ID 找到網頁上的 <sv-agent> 元件
-        const agentElement = document.getElementById('my-agent');
-        
-        // 將配置物件賦值給該元件的 layoutConfig 屬性
-        if (agentElement) {
-          agentElement.layoutConfig = layoutConfig;
-        }
-      });
-    </script>
 
 </body>
 </html>
