@@ -16,34 +16,32 @@
         h1 { color: #2c3e50; }
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
-        /* 觸發彈出視窗的按鈕樣式 */
-        .trigger-btn {
-            background: linear-gradient(45deg, #ff758c, #ff7eb3);
-            color: white;
+        /* ==========================================
+           新增：透明覆蓋按鈕樣式（精準覆蓋右下角 Agent）
+           ========================================== */
+        .agent-click-overlay {
+            position: fixed;
+            bottom: 20px;   /* 根據你網頁上 agent 的實際位置微調 */
+            right: 20px;    /* 根據你網頁上 agent 的實際位置微調 */
+            width: 80px;    /* 覆蓋圓形大頭貼的寬度 */
+            height: 80px;   /* 覆蓋圓形大頭貼的高度 */
+            border-radius: 50%;
+            background: transparent; /* 完全透明 */
             border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 25px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-            margin-top: 20px;
-        }
-        .trigger-btn:hover {
-            transform: scale(1.05);
+            z-index: 99999; /* 確保在最上層，可以被點擊 */
         }
 
         /* 彈出視窗（Modal）背景遮罩 */
         .modal-overlay {
-            display: none; /* 預設隱藏 */
+            display: none; 
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 9999;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 100000; /* 比透明按鈕更高，彈出時蓋住全螢幕 */
             justify-content: center;
             align-items: center;
         }
@@ -52,31 +50,29 @@
         .modal-content {
             display: flex;
             width: 90%;
-            max-width: 1200px;
+            max-width: 1100px;
             height: 80vh;
             background-color: #fff;
-            border-radius: 16px;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             position: relative;
         }
 
         /* 左側行程卡片區域 */
         .modal-left {
-            flex: 2;
-            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            flex: 1.8;
+            background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
             padding: 30px;
             overflow-y: auto;
             text-align: left;
-            position: relative;
         }
 
         /* 右側 AI Agent 區域 */
         .modal-right {
-            flex: 1;
-            background-color: #333;
+            flex: 1.2;
+            background-color: #222;
             position: relative;
-            border-left: 1px solid #eee;
         }
 
         /* 關閉按鈕 */
@@ -105,20 +101,22 @@
         }
         .card img {
             width: 100%;
-            height: 150px;
+            height: 140px;
             object-fit: cover;
         }
         .card-body {
-            padding: 15px;
+            padding: 12px;
         }
         .card-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             margin-bottom: 8px;
+            color: #333;
         }
         .card-price {
             color: #e91e63;
             font-weight: bold;
+            font-size: 14px;
         }
     </style>
     <script
@@ -131,7 +129,14 @@
     <h1>Welcome to My Personal Website!</h1>
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
-    <button class="trigger-btn" id="openModalBtn">想看日本三大花火...</button>
+    <sv-agent
+      id="myPerxonaAgent"
+      agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
+      presentationMode="bubble"
+      apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
+    ></sv-agent>
+
+    <button class="agent-click-overlay" id="agentOverlayBtn"></button>
 
     <div class="modal-overlay" id="popupModal">
         <div class="modal-content">
@@ -139,7 +144,7 @@
             
             <div class="modal-left">
                 <h2>想看日本三大花火大會 (3)</h2>
-                <p style="background: rgba(255,255,255,0.7); padding: 15px; border-radius: 8px; font-size: 15px;">
+                <p style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; font-size: 15px; line-height: 1.5;">
                     如果你想看日本三大花火大會之一的長岡煙火，現在有不同的行程可以選擇，包括一日直達A區觀賞席、兩天一夜B區觀賞席加溫泉住宿...
                 </p>
                 
@@ -147,14 +152,14 @@
                     <div class="card">
                         <img src="https://images.unsplash.com/photo-1533105079780-92b9be482077?w=500" alt="煙火">
                         <div class="card-body">
-                            <div class="card-title">【保證有位】長岡煙火A區觀賞 | 直達會場接駁</div>
+                            <div class="card-title">【保證有位】日本三大花火長岡煙火A區觀賞 | 直達會場接駁</div>
                             <div class="card-price">TWD 5,500 起</div>
                         </div>
                     </div>
                     <div class="card">
                         <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500" alt="煙火">
                         <div class="card-body">
-                            <div class="card-title">【保證有位】長岡煙火B區觀賞席 | 市區散策</div>
+                            <div class="card-title">【保證有位】日本三大花火長岡煙火B區觀賞席 | 市區散策 + ...</div>
                             <div class="card-price">TWD 12,500 起</div>
                         </div>
                     </div>
@@ -173,24 +178,35 @@
     </div>
 
     <script>
-        const openModalBtn = document.getElementById('openModalBtn');
+        const agentOverlayBtn = document.getElementById('agentOverlayBtn');
         const closeModalBtn = document.getElementById('closeModalBtn');
         const popupModal = document.getElementById('popupModal');
+        const mainAgent = document.getElementById('myPerxonaAgent');
 
-        // 點擊按鈕打開彈出視窗
-        openModalBtn.addEventListener('click', () => {
+        // 當使用者點擊右下角的頭像（實際是點到透明疊加層）
+        agentOverlayBtn.addEventListener('click', (e) => {
+            // 1. 顯示大彈出視窗
             popupModal.style.display = 'flex';
+            
+            // 2. 暫時隱藏原本右下角的泡泡，避免干擾視覺
+            mainAgent.style.display = 'none';
+            agentOverlayBtn.style.display = 'none';
         });
 
         // 點擊 X 關閉彈出視窗
         closeModalBtn.addEventListener('click', () => {
             popupModal.style.display = 'none';
+            // 恢復右下角的頭像
+            mainAgent.style.display = 'block';
+            agentOverlayBtn.style.display = 'block';
         });
 
         // 點擊彈出視窗外圍空白處也可以關閉
         window.addEventListener('click', (e) => {
             if (e.target === popupModal) {
                 popupModal.style.display = 'none';
+                mainAgent.style.display = 'block';
+                agentOverlayBtn.style.display = 'block';
             }
         });
     </script>
