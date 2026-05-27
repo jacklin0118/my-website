@@ -15,6 +15,111 @@
         }
         h1 { color: #2c3e50; }
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
+
+        /* 觸發彈出視窗的按鈕樣式 */
+        .trigger-btn {
+            background: linear-gradient(45deg, #ff758c, #ff7eb3);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            margin-top: 20px;
+        }
+        .trigger-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* 彈出視窗（Modal）背景遮罩 */
+        .modal-overlay {
+            display: none; /* 預設隱藏 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 彈出視窗主體版面配置 (Flexbox 左右並排) */
+        .modal-content {
+            display: flex;
+            width: 90%;
+            max-width: 1200px;
+            height: 80vh;
+            background-color: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        /* 左側行程卡片區域 */
+        .modal-left {
+            flex: 2;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            padding: 30px;
+            overflow-y: auto;
+            text-align: left;
+            position: relative;
+        }
+
+        /* 右側 AI Agent 區域 */
+        .modal-right {
+            flex: 1;
+            background-color: #333;
+            position: relative;
+            border-left: 1px solid #eee;
+        }
+
+        /* 關閉按鈕 */
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 30px;
+            cursor: pointer;
+            color: #555;
+            z-index: 10;
+        }
+
+        /* 模擬卡片樣式 */
+        .card-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .card {
+            background: white;
+            flex: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+        .card-body {
+            padding: 15px;
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .card-price {
+            color: #e91e63;
+            font-weight: bold;
+        }
     </style>
     <script
       type="module"
@@ -26,11 +131,69 @@
     <h1>Welcome to My Personal Website!</h1>
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
-    <sv-agent
-      agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
-      presentationMode="bubble"
-      apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
-    ></sv-agent>
+    <button class="trigger-btn" id="openModalBtn">想看日本三大花火...</button>
+
+    <div class="modal-overlay" id="popupModal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModalBtn">&times;</span>
+            
+            <div class="modal-left">
+                <h2>想看日本三大花火大會 (3)</h2>
+                <p style="background: rgba(255,255,255,0.7); padding: 15px; border-radius: 8px; font-size: 15px;">
+                    如果你想看日本三大花火大會之一的長岡煙火，現在有不同的行程可以選擇，包括一日直達A區觀賞席、兩天一夜B區觀賞席加溫泉住宿...
+                </p>
+                
+                <div class="card-container">
+                    <div class="card">
+                        <img src="https://images.unsplash.com/photo-1533105079780-92b9be482077?w=500" alt="煙火">
+                        <div class="card-body">
+                            <div class="card-title">【保證有位】長岡煙火A區觀賞 | 直達會場接駁</div>
+                            <div class="card-price">TWD 5,500 起</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500" alt="煙火">
+                        <div class="card-body">
+                            <div class="card-title">【保證有位】長岡煙火B區觀賞席 | 市區散策</div>
+                            <div class="card-price">TWD 12,500 起</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-right">
+                <sv-agent
+                  agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
+                  presentationMode="chat" 
+                  apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
+                  style="width: 100%; height: 100%; position: absolute; top:0; left:0;"
+                ></sv-agent>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const popupModal = document.getElementById('popupModal');
+
+        // 點擊按鈕打開彈出視窗
+        openModalBtn.addEventListener('click', () => {
+            popupModal.style.display = 'flex';
+        });
+
+        // 點擊 X 關閉彈出視窗
+        closeModalBtn.addEventListener('click', () => {
+            popupModal.style.display = 'none';
+        });
+
+        // 點擊彈出視窗外圍空白處也可以關閉
+        window.addEventListener('click', (e) => {
+            if (e.target === popupModal) {
+                popupModal.style.display = 'none';
+            }
+        });
+    </script>
 
 </body>
 </html>
