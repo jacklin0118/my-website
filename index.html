@@ -17,59 +17,30 @@
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
-           1. 專屬拖曳容器：把 Agent 與隱形手把綁在一起
-           ======================================================== */
-        .agent-container {
-            position: fixed !important;
-            bottom: 20px; /* 初始底部位置 */
-            right: 20px;  /* 初始右側位置 */
-            width: 85px;  /* 泡泡狀態時的預設寬度 */
-            height: 85px; /* 泡泡狀態時的預設高度 */
-            z-index: 99999;
-            touch-action: none;
-        }
-
-        /* 讓 Agent 填滿容器 */
-        sv-agent {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        /* ========================================================
-           2. 隱形拖曳手把：疊在 Agent 頭像上方的透明按鈕
-           ======================================================== */
-        .drag-handle {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 80px;      /* 精準覆蓋大頭貼尺寸 */
-            height: 80px;     /* 精準覆蓋大頭貼尺寸 */
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0); /* 完全透明 */
-            border: none;
-            cursor: move;     /* 顯示拖曳手勢 */
-            z-index: 100001;  /* 確保在最外層，優先被滑鼠抓到 */
-        }
-
-        /* ========================================================
-           3. 行程卡片視窗
+           行程卡片視窗（精準定位在 Agent 左側，兩者並存）
            ======================================================== */
         .itinerary-popup {
-            display: none; 
+            display: none; /* 預設隱藏 */
             position: fixed;
+            
+            /* 關鍵定位：讓它長在 Agent 的左邊，並與 Agent 的排版融合 */
+            bottom: 100px;        /* 避開右下角頭像，高度對齊展開後的對話框 */
+            right: 420px;        /* 留出空間給 Perxona 展開後的聊天視窗（寬約 380px-400px） */
+            
+            width: 60vw;         /* 寬度佔螢幕的 60% */
+            max-width: 800px;
+            height: 70vh;        /* 高度佔螢幕的 70% */
+            max-height: 600px;
+            
             background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            z-index: 99998;
+            z-index: 99998;      /* 確保高於一般網頁內容 */
             padding: 30px;
             box-sizing: border-box;
             text-align: left;
             overflow-y: auto;
-            width: 60vw;
-            max-width: 800px;
-            height: 70vh;
-            max-height: 600px;
-            animation: fadeIn 0.3s ease-out;
+            animation: fadeIn 0.3s ease-out; /* 彈出動畫 */
         }
 
         @keyframes fadeIn {
@@ -77,6 +48,7 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
+        /* 關閉按鈕 (X) */
         .close-btn {
             position: absolute;
             top: 15px;
@@ -86,6 +58,7 @@
             color: #555;
         }
 
+        /* 模擬卡片排版樣式 */
         .card-container {
             display: flex;
             gap: 15px;
@@ -128,18 +101,15 @@
     <h1>Welcome to My Personal Website!</h1>
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
-    <div class="agent-container" id="agentWrapper">
-        <div class="drag-handle" id="dragHandle"></div>
-        
-        <sv-agent
-          agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
-          presentationMode="bubble"
-          apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
-        ></sv-agent>
-    </div>
+    <sv-agent
+      agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
+      presentationMode="bubble"
+      apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
+    ></sv-agent>
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
+        
         <h2>想看日本三大花火大會 (3)</h2>
         <p style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; font-size: 15px; line-height: 1.5;">
             如果你想看日本三大花火大會之一的長岡煙火，現在有不同的行程可以選擇，包括一日直達A區觀賞席、兩天一夜B區觀賞席加溫泉住宿，還有三天的彌彥神社巡禮和煙火體驗，讓你輕鬆享受壯觀的煙火盛會。
@@ -166,128 +136,30 @@
     <script>
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
-        const agentWrapper = document.getElementById('agentWrapper');
-        const dragHandle = document.getElementById('dragHandle');
 
         // ========================================================
-        // 1. 全域監聽：點擊對話框內「當季小黃瓜照片」標籤
+        // 方案 B：全域監聽點擊，穿透 Shadow DOM 偵測關鍵字
         // ========================================================
         window.addEventListener('click', (event) => {
+            // 獲取點擊事件穿透的所有元素路徑
             const path = event.composedPath();
+            
+            // 檢查點擊路徑中，有沒有任何元素的文字剛好是 "當季小黃瓜照片"
             const hasClickedCucumber = path.some(element => {
                 return element.textContent && element.textContent.trim() === '當季小黃瓜照片';
             });
 
+            // 如果點到了，就秀出左邊行程視窗
             if (hasClickedCucumber) {
                 itineraryWindow.style.display = 'block';
-                updatePopupPosition();
-                event.stopPropagation();
+                event.stopPropagation(); // 阻止事件干擾
             }
         });
 
+        // 點擊 X 關閉行程視窗
         closeItineraryBtn.addEventListener('click', () => {
             itineraryWindow.style.display = 'none';
         });
-
-        // 讓行程視窗動態緊貼在 Agent 的左邊
-        function updatePopupPosition() {
-            const rect = agentWrapper.getBoundingClientRect();
-            itineraryWindow.style.right = (window.innerWidth - rect.left + 20) + 'px';
-            itineraryWindow.style.bottom = (window.innerHeight - rect.bottom) + 'px';
-        }
-
-        // ========================================================
-        // 2. 改良版拖曳邏輯：透過控制 wrapper 的位置來移動 Agent
-        // ========================================================
-        let isDragging = false;
-        let startX, startY;
-        let initialLeft, initialTop;
-        let hasMoved = false; // 用來區分使用者是在「拖曳」還是「單純點擊」
-
-        function startDrag(e) {
-            isDragging = true;
-            hasMoved = false;
-
-            const clientX = e.clientX || e.touches[0].clientX;
-            const clientY = e.clientY || e.touches[0].clientY;
-            
-            startX = clientX;
-            startY = clientY;
-            
-            const rect = agentWrapper.getBoundingClientRect();
-            initialLeft = rect.left;
-            initialTop = rect.top;
-
-            agentWrapper.style.transition = 'none';
-        }
-
-        function doDrag(e) {
-            if (!isDragging) return;
-            
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-
-            // 計算滑鼠移動的微小距離
-            const deltaX = clientX - startX;
-            const deltaY = clientY - startY;
-
-            // 如果移動距離大於 5 像素，判定為拖曳行為
-            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-                hasMoved = true;
-            }
-
-            let newLeft = initialLeft + deltaX;
-            let newTop = initialTop + deltaY;
-
-            // 邊界限制（防止拖出螢幕）
-            newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - agentWrapper.offsetWidth));
-            newTop = Math.max(0, Math.min(newTop, window.innerHeight - agentWrapper.offsetHeight));
-
-            // 更新容器位置
-            agentWrapper.style.right = 'auto';
-            agentWrapper.style.bottom = 'auto';
-            agentWrapper.style.left = newLeft + 'px';
-            agentWrapper.style.top = newTop + 'px';
-
-            if (itineraryWindow.style.display === 'block') {
-                updatePopupPosition();
-            }
-        }
-
-        function endDrag(e) {
-            if (!isDragging) return;
-            isDragging = false;
-
-            // 【智慧防衝突】如果使用者只是輕輕點一下（沒移動），代表他想打開聊天室
-            if (!hasMoved) {
-                // 暫時隱藏隱形手把，讓點擊穿透到下面的 Agent 頭像去開啟對話
-                dragHandle.style.pointerEvents = 'none';
-                
-                // 模擬點擊原本大頭貼的位置
-                const clickTarget = document.elementFromPoint(startX, startY);
-                if (clickTarget) clickTarget.click();
-                
-                // 0.3 秒後悄悄把手把功能裝回來，確保之後還能繼續拖曳
-                setTimeout(() => {
-                    dragHandle.style.pointerEvents = 'auto';
-                }, 300);
-            } else {
-                // 如果剛剛是拖曳，檢查一下是不是展開了。展開後就把 wrapper 的寬高撐大，避免對話框破格
-                // 這裡將 wrapper 的長寬放寬，容納展開後的 UI
-                agentWrapper.style.width = 'auto';
-                agentWrapper.style.height = 'auto';
-            }
-        }
-
-        // 電腦端事件監聽
-        dragHandle.addEventListener('mousedown', startDrag);
-        window.addEventListener('mousemove', doDrag);
-        window.addEventListener('mouseup', endDrag);
-
-        // 手機端事件監聽
-        dragHandle.addEventListener('touchstart', startDrag, { passive: false });
-        window.addEventListener('touchmove', doDrag, { passive: false });
-        window.addEventListener('touchend', endDrag);
     </script>
 
 </body>
