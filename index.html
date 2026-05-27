@@ -17,21 +17,11 @@
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
-           行程卡片視窗（精準定位在 Agent 左側，兩者並存）
+           行程卡片視窗（透過 JS 賦予動態位置，移除固定 bottom/right）
            ======================================================== */
         .itinerary-popup {
             display: none; /* 預設隱藏 */
             position: fixed;
-            
-            /* 關鍵定位：讓它長在 Agent 的左邊，並與 Agent 的排版融合 */
-            bottom: 100px;        /* 避開右下角頭像，高度對齊展開後的對話框 */
-            right: 420px;        /* 留出空間給 Perxona 展開後的聊天視窗（寬約 380px-400px） */
-            
-            width: 60vw;         /* 寬度佔螢幕的 60% */
-            max-width: 800px;
-            height: 70vh;        /* 高度佔螢幕的 70% */
-            max-height: 600px;
-            
             background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
@@ -40,7 +30,13 @@
             box-sizing: border-box;
             text-align: left;
             overflow-y: auto;
-            animation: fadeIn 0.3s ease-out; /* 彈出動畫 */
+            
+            /* 固定視窗寬度，使其形狀更符合長方形設計 */
+            width: 55vw;
+            max-width: 820px;
+            min-width: 450px;
+            
+            animation: fadeIn 0.3s ease-out; 
         }
 
         @keyframes fadeIn {
@@ -102,6 +98,7 @@
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
     <sv-agent
+      id="perxonaAgent"
       agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
       presentationMode="bubble"
       apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
@@ -136,23 +133,50 @@
     <script>
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
+        const agentEl = document.getElementById('perxonaAgent');
+
+        // ========================================================
+        // 智慧型對齊演算法：強制讓粉色視窗與 Agent 展開面板平行
+        // ========================================================
+        function matchAgentPosition() {
+            if (itineraryWindow.style.display !== 'block') return;
+
+            // 1. 抓取 Perxona Agent 視窗在瀏覽器上的真實邊界位置
+            const agentRect = agentEl.getBoundingClientRect();
+
+            // 2. 核心 X 軸計算：讓粉色視窗的右側，精準靠在 Agent 視窗的左側 (並留 15px 的美觀空隙)
+            // 由於 Perxona 展開後寬度通常會撐大（約 380px~400px）
+            // 如果從外層抓不到內部 Shadow 寬度，我們直接用螢幕邊界扣掉間距來推算：
+            const gapX = 15; // 左右視窗的間隔距離
+            const expandedAgentWidth = 400; // 預估 Perxona 展開後的聊天室總寬度
+            
+            itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
+
+            // 3. 核心 Y 軸平行計算：強迫高度與頂端跟 Agent 完全一致
+            // 由於 Perxona 展開後通常會固定在距離頂部 60px~100px 或是固定高度
+            const desiredTop = 80;  // 與截圖中 Agent 視窗頂部平齊的座標位置
+            const desiredHeight = window.innerHeight - desiredTop - 120; // 讓底部高度跟對話框下緣維持平行
+
+            itineraryWindow.style.top = desiredTop + 'px';
+            itineraryWindow.style.height = desiredHeight + 'px';
+        }
 
         // ========================================================
         // 方案 B：全域監聽點擊，穿透 Shadow DOM 偵測關鍵字
         // ========================================================
         window.addEventListener('click', (event) => {
-            // 獲取點擊事件穿透的所有元素路徑
             const path = event.composedPath();
             
-            // 檢查點擊路徑中，有沒有任何元素的文字剛好是 "當季小黃瓜照片"
             const hasClickedCucumber = path.some(element => {
                 return element.textContent && element.textContent.trim() === '當季小黃瓜照片';
             });
 
-            // 如果點到了，就秀出左邊行程視窗
             if (hasClickedCucumber) {
                 itineraryWindow.style.display = 'block';
-                event.stopPropagation(); // 阻止事件干擾
+                
+                // 使用一小段延遲 (100毫秒)，確保 Agent 的展開動畫完成後，再行抓取精準坐標
+                setTimeout(matchAgentPosition, 100);
+                event.stopPropagation(); 
             }
         });
 
@@ -160,6 +184,9 @@
         closeItineraryBtn.addEventListener('click', () => {
             itineraryWindow.style.display = 'none';
         });
+
+        // 當瀏覽器縮放或改變大小時，即時保持視窗對齊
+        window.addEventListener('resize', matchAgentPosition);
     </script>
 
 </body>
