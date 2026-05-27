@@ -130,7 +130,6 @@
 
     <div class="agent-container" id="agentWrapper">
         <div class="drag-handle" id="dragHandle"></div>
-        
         <sv-agent
           id="perxonaAgent"
           agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
@@ -171,13 +170,13 @@
         const dragHandle = document.getElementById('dragHandle');
 
         // ========================================================
-        // 智慧型對齊：精準與右下角預設展開的對話框平行
+        // 智慧對齊：因為點開時 Agent 被吸回右下角，所以行程視窗也固定對齊右下角
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
 
             const gapX = 15;
-            const expandedAgentWidth = 400; // 預估 Perxona 展開後的聊天室寬度
+            const expandedAgentWidth = 400; 
             
             itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
             itineraryWindow.style.left = 'auto';
@@ -199,9 +198,7 @@
             });
 
             if (hasClickedCucumber) {
-                // 如果在任意拖曳位置被觸發，強制將大頭貼先滑順吸回右下角
                 resetAgentToDefaultPosition();
-                
                 itineraryWindow.style.display = 'block';
                 setTimeout(matchAgentPosition, 150);
                 event.stopPropagation(); 
@@ -216,14 +213,14 @@
 
 
         // ========================================================
-        // 3. 升級版拖曳控制邏輯（完美兼容展開、修復無法移動問題）
+        // 3. 全域追蹤版：流暢拖曳控制邏輯（完美解鎖任意位置移動）
         // ========================================================
         let isDragging = false;
-        let startX, startY;
-        let initialLeft, initialTop;
+        let shiftX = 0;
+        let shiftY = 0;
         let hasMoved = false;
 
-        // 強制把大頭貼吸回右下角預設位置
+        // 歸位到右下角預設位置
         function resetAgentToDefaultPosition() {
             agentWrapper.style.transition = 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)'; 
             agentWrapper.style.left = 'auto';
@@ -233,26 +230,22 @@
         }
 
         function startDrag(e) {
-            // 點擊手把時，若目前偵測到聊天室已經展開，就完全不觸發拖曳
             const agentEl = document.getElementById('perxonaAgent');
-            if (agentEl && agentEl.offsetHeight > 150) return;
+            if (agentEl && agentEl.offsetHeight > 150) return; // 展開時鎖定
 
             isDragging = true;
             hasMoved = false;
 
-            // 兼顧滑鼠事件與手機手指觸控事件
             const clientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
             const clientY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
             
-            startX = clientX;
-            startY = clientY;
-            
             const rect = agentWrapper.getBoundingClientRect();
-            initialLeft = rect.left;
-            initialTop = rect.top;
+            
+            // 計算滑鼠按下的位置距離大頭貼左上角邊界的偏移量 (Offset)
+            shiftX = clientX - rect.left;
+            shiftY = clientY - rect.top;
 
-            // 拖曳中必須移除動畫過渡，不然移動會延遲卡頓
-            agentWrapper.style.transition = 'none';
+            agentWrapper.style.transition = 'none'; // 移動時移除過渡，防止頓挫感
             
             if(e.cancelable) e.preventDefault();
             e.stopPropagation();
@@ -264,22 +257,17 @@
             const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
             const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
 
-            const deltaX = clientX - startX;
-            const deltaY = clientY - startY;
+            hasMoved = true;
 
-            // 超過 4 像素才判定為故意拖曳，避免點擊時手指微顫
-            if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
-                hasMoved = true;
-            }
+            // 計算出相對於視窗 (Viewport) 的新坐標
+            let newLeft = clientX - shiftX;
+            let newTop = clientY - shiftY;
 
-            let newLeft = initialLeft + deltaX;
-            let newTop = initialTop + deltaY;
-
-            // 邊界安全限制：防止頭像被丟出瀏覽器視窗外
+            // 邊界限制，防止拖曳出螢幕外
             newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - 85));
             newTop = Math.max(0, Math.min(newTop, window.innerHeight - 85));
 
-            // 更新拖曳中的即時位置
+            // 直接精準覆蓋 CSS 樣式，解除右下角綁定
             agentWrapper.style.right = 'auto';
             agentWrapper.style.bottom = 'auto';
             agentWrapper.style.left = newLeft + 'px';
@@ -290,35 +278,31 @@
             if (!isDragging) return;
             isDragging = false;
 
-            // 情境一：使用者只是單純「點擊」大頭貼（沒有要拖曳）
+            // 如果沒有明顯位移，視為單純的點擊事件
             if (!hasMoved) {
-                // 1. 觸發吸回右下角預設歸位，給 Perxona 聊天室充足的空間展開
                 resetAgentToDefaultPosition();
 
-                // 2. 穿透點擊手把，模擬去點擊底下的 Perxona 元件
+                // 點擊穿透核心
                 setTimeout(() => {
-                    dragHandle.style.pointerEvents = 'none'; // 讓滑鼠點擊可以穿透它
+                    dragHandle.style.pointerEvents = 'none';
                     const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
                     if (clickTarget) {
                         clickTarget.click();
                     }
                     setTimeout(() => {
-                        dragHandle.style.pointerEvents = 'auto'; // 點擊完後悄悄恢復手把功能
+                        dragHandle.style.pointerEvents = 'auto';
                     }, 200);
                 }, 150); 
                 
-            } else {
-                // 情境二：使用者做完了搬移，保持留在原地
-                agentWrapper.style.transition = 'none';
             }
         }
 
-        // 電腦端滑鼠事件監聽
+        // 修正點：將滑鼠搬移的監聽，全面升級託管給全網頁最外層 (window)，再也不會脫鉤斷掉
         dragHandle.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', doDrag);
         window.addEventListener('mouseup', endDrag);
 
-        // 行動端手機觸控事件監聽
+        // 手機端同步升級託管
         dragHandle.addEventListener('touchstart', startDrag, { passive: false });
         window.addEventListener('touchmove', doDrag, { passive: false });
         window.addEventListener('touchend', endDrag);
