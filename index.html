@@ -17,12 +17,12 @@
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
-           1. 專屬外容器：不影響 Agent 原生展開，但能讓我們追蹤與控制位置
+           1. 專屬外容器：加上平滑的歸位動畫效果 (transition)
            ======================================================== */
         .agent-container {
             position: fixed !important;
-            bottom: 20px; /* 初始位置 */
-            right: 20px;  /* 初始位置 */
+            bottom: 20px; /* 預設右下角位置 */
+            right: 20px;  /* 預設右下角位置 */
             width: 85px;  
             height: 85px; 
             z-index: 99999;
@@ -34,7 +34,7 @@
             height: 100% !important;
         }
 
-        /* 隱形拖曳手把（疊在大頭貼上方） */
+        /* 隱形拖曳手把 */
         .drag-handle {
             position: absolute;
             top: 0;
@@ -49,10 +49,10 @@
         }
 
         /* ========================================================
-           2. 行程卡片視窗（動態計算位置專用樣式）
+           2. 行程卡片視窗 (精準定位在右下角 Agent 左側)
            ======================================================== */
         .itinerary-popup {
-            display: none; /* 預設隱藏 */
+            display: none; 
             position: fixed;
             background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
             border-radius: 20px;
@@ -63,7 +63,7 @@
             text-align: left;
             overflow-y: auto;
             
-            /* 固定視窗寬度，使其形狀更符合長方形設計 */
+            /* 寬度與高度設定 */
             width: 55vw;
             max-width: 820px;
             min-width: 450px;
@@ -76,7 +76,6 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* 關閉按鈕 (X) */
         .close-btn {
             position: absolute;
             top: 15px;
@@ -86,7 +85,6 @@
             color: #555;
         }
 
-        /* 模擬卡片排版樣式 */
         .card-container {
             display: flex;
             gap: 15px;
@@ -170,30 +168,22 @@
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
         const agentWrapper = document.getElementById('agentWrapper');
         const dragHandle = document.getElementById('dragHandle');
-        const agentEl = document.getElementById('perxonaAgent');
 
         // ========================================================
-        // 智慧型隨動對齊演算法：無論 Agent 被拖到哪，粉色視窗都精準對齊
+        // 智慧對齊：因為點開時 Agent 被吸回右下角，所以行程視窗也固定對齊右下角
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
 
-            // 1. 抓取目前外殼（Wrapper）在網頁上的即時坐標
-            const rect = agentWrapper.getBoundingClientRect();
-
-            // 2. 智慧 X 軸連動：不管拖到哪，粉色視窗右側永遠貼在 Agent 左邊 (空隙 15px)
-            // 當 Agent 展開成面板時，面板最右側與原本的外殼圓心對齊，故我們從 rect.right 反推
+            // 固定完美平行與靠右對齊 (這能與 Perxona 預設開啟的位置 100% 同步)
             const gapX = 15;
-            const expandedAgentWidth = 400; // Perxona 面板展開的寬度
+            const expandedAgentWidth = 400; 
             
-            // 計算出粉色視窗該設定的 right 距離
-            const calculatedRight = window.innerWidth - rect.right + expandedAgentWidth + gapX;
-            itineraryWindow.style.right = calculatedRight + 'px';
+            itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
             itineraryWindow.style.left = 'auto';
 
-            // 3. 智慧 Y 軸連動：強迫粉色視窗高度、頂端跟右側展開面板完全平行
-            const desiredTop = 80;  // 平行對齊頂部
-            const desiredHeight = window.innerHeight - desiredTop - 120; // 底部對齊
+            const desiredTop = 80;  
+            const desiredHeight = window.innerHeight - desiredTop - 120; 
 
             itineraryWindow.style.top = desiredTop + 'px';
             itineraryWindow.style.height = desiredHeight + 'px';
@@ -209,9 +199,11 @@
             });
 
             if (hasClickedCucumber) {
+                // 如果在拖曳狀態點開，先強制將 Agent 吸回右下角
+                resetAgentToDefaultPosition();
+                
                 itineraryWindow.style.display = 'block';
-                // 延遲一下下，等展開動畫做完再精準抓取最新座標
-                setTimeout(matchAgentPosition, 100);
+                setTimeout(matchAgentPosition, 150);
                 event.stopPropagation(); 
             }
         });
@@ -224,15 +216,24 @@
 
 
         // ========================================================
-        // 3. 核心拖曳功能邏輯 (相容電腦滑鼠與手機觸控)
+        // 3. 拖曳控制邏輯（加入「點擊歸位」核心黑科技）
         // ========================================================
         let isDragging = false;
         let startX, startY;
         let initialLeft, initialTop;
         let hasMoved = false;
 
+        // 強制把大頭貼吸回右下角預設位置的函式
+        function resetAgentToDefaultPosition() {
+            agentWrapper.style.transition = 'all 0.3s ease'; // 加上絲滑的吸回動畫
+            agentWrapper.style.left = 'auto';
+            agentWrapper.style.top = 'auto';
+            agentWrapper.style.right = '20px';
+            agentWrapper.style.bottom = '20px';
+        }
+
         function startDrag(e) {
-            // 如果面板已經展開（高度變長），此時鎖定拖曳，避免聊天、滑動時誤觸
+            // 如果高度變長（代表聊天室已經開了），鎖定拖曳
             if (agentWrapper.offsetHeight > 150) return;
 
             isDragging = true;
@@ -248,6 +249,7 @@
             initialLeft = rect.left;
             initialTop = rect.top;
 
+            // 拖曳時要關閉 transition，不然移動會卡頓延遲
             agentWrapper.style.transition = 'none';
         }
 
@@ -260,7 +262,6 @@
             const deltaX = clientX - startX;
             const deltaY = clientY - startY;
 
-            // 移動超過 5 像素才判定為拖曳
             if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
                 hasMoved = true;
             }
@@ -268,17 +269,14 @@
             let newLeft = initialLeft + deltaX;
             let newTop = initialTop + deltaY;
 
-            // 防止大頭貼被拖出瀏覽器視窗外
             newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - agentWrapper.offsetWidth));
             newTop = Math.max(0, Math.min(newTop, window.innerHeight - agentWrapper.offsetHeight));
 
-            // 即時更新 Agent 容器位置
             agentWrapper.style.right = 'auto';
             agentWrapper.style.bottom = 'auto';
             agentWrapper.style.left = newLeft + 'px';
             agentWrapper.style.top = newTop + 'px';
 
-            // 重點：如果行程視窗本來就是打開的，拖曳時左邊粉色視窗會即時跟隨移動！
             if (itineraryWindow.style.display === 'block') {
                 matchAgentPosition();
             }
@@ -288,27 +286,33 @@
             if (!isDragging) return;
             isDragging = false;
 
-            // 如果沒移動，代表使用者是要「點擊大頭貼開啟聊天」
+            // 【核心修正】如果使用者只是點一下大頭貼（沒有要拖曳，單純想開啟聊天室）
             if (!hasMoved) {
-                dragHandle.style.pointerEvents = 'none'; // 讓點擊穿透透明層
-                const clickTarget = document.elementFromPoint(startX, startY);
-                if (clickTarget) clickTarget.click();
+                // 1. 瞬間把大頭貼平滑吸回原本的右下角，防止 Perxona 展開時錯位！
+                resetAgentToDefaultPosition();
+
+                // 2. 穿透點擊，讓 Perxona 正常開啟對話框
                 setTimeout(() => {
-                    dragHandle.style.pointerEvents = 'auto';
-                }, 300);
+                    dragHandle.style.pointerEvents = 'none';
+                    const clickTarget = document.elementFromPoint(window.innerWidth - 40, window.innerHeight - 40);
+                    if (clickTarget) clickTarget.click();
+                    setTimeout(() => {
+                        dragHandle.style.pointerEvents = 'auto';
+                    }, 300);
+                }, 150); // 留點時間給歸位動畫
+                
             } else {
-                // 如果移動過了，釋放外殼限制，確保聊天室可以正常往上展開
+                // 如果是移動，放開後恢復寬高自適應
                 agentWrapper.style.width = 'auto';
                 agentWrapper.style.height = 'auto';
             }
         }
 
-        // 電腦端監聽
+        // 綁定滑鼠與觸控事件
         dragHandle.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', doDrag);
         window.addEventListener('mouseup', endDrag);
 
-        // 手機端監聽
         dragHandle.addEventListener('touchstart', startDrag, { passive: false });
         window.addEventListener('touchmove', doDrag, { passive: false });
         window.addEventListener('touchend', endDrag);
