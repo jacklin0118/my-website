@@ -116,7 +116,7 @@
             will-change: transform;
         }
 
-        /* 💡 新增：當滑鼠抓著拖曳時，手把瞬間變全螢幕，防止滑鼠滑出界而漏抓閃爍 */
+        /* 當滑鼠抓著拖曳時，手把瞬間變全螢幕，防止滑鼠滑出界而漏抓閃爍 */
         #globalDragHandle.dragging-active {
             top: 0 !important;
             left: 0 !important;
@@ -125,7 +125,6 @@
             border-radius: 0 !important;
             bottom: auto !important;
             right: auto !important;
-            /* 保持當前的平移坐標，讓滑鼠落點不變 */
         }
     </style>
     <script
@@ -180,6 +179,11 @@
 
         let currentX = 0;
         let currentY = 0;
+        let lastX = 0;
+        let lastY = 0;
+        let isDragging = false;
+        let startX, startY;
+        let hasMoved = false;
 
         // ========================================================
         // 智慧型對齊演算法：行程視窗永遠對齊右下角原生展開面板的左側
@@ -200,9 +204,7 @@
             itineraryWindow.style.height = desiredHeight + 'px';
         }
 
-        // ========================================================
         // 方案 B：全域點擊穿透監聽（當季小黃瓜照片）
-        // ========================================================
         window.addEventListener('click', (event) => {
             const path = event.composedPath();
             const hasClickedCucumber = path.some(element => {
@@ -222,16 +224,9 @@
 
         window.addEventListener('resize', matchAgentPosition);
 
-
         // ========================================================
-        // 🚀 全域防滑出拖曳演算機制（完美解決跨界閃爍與分身問題）
+        // 🚀 核心修復版：全域同步防抖連動引擎
         // ========================================================
-        let isDragging = false;
-        let startX, startY;
-        let lastX = 0;
-        let lastY = 0;
-        let hasMoved = false;
-
         function startDrag(e) {
             if (agentEl && agentEl.offsetHeight > 150) return;
 
@@ -247,9 +242,7 @@
             agentEl.style.transition = 'none';
             dragHandle.style.transition = 'none';
 
-            // 💡 關鍵突破：按下瞬間激活全螢幕防護罩，滑鼠絕對滑不出去
             dragHandle.classList.add('dragging-active');
-            // 因為樣式切換成全螢幕，要補上當前的平移量，防止手把瞬間跳位
             dragHandle.style.transform = `translate(${lastX}px, ${lastY}px)`;
             
             if(e.cancelable) e.preventDefault();
@@ -272,7 +265,7 @@
             currentX = lastX + deltaX;
             currentY = lastY + deltaY;
 
-            // 算上起點(window.innerWidth - 105)反推物理邊界，防止頭像飛出瀏覽器外
+            // 邊界安全限制
             const initialLeftBound = window.innerWidth - 105;
             const initialTopBound = window.innerHeight - 105;
 
@@ -281,7 +274,6 @@
             if (initialTopBound + currentY < 0) currentY = -initialTopBound;
             if (initialTopBound + currentY > window.innerHeight - 85) currentY = window.innerHeight - 85 - initialTopBound;
 
-            // 同步平移
             const transformStyle = `translate(${currentX}px, ${currentY}px)`;
             agentEl.style.transform = transformStyle;
             dragHandle.style.transform = transformStyle;
@@ -291,11 +283,10 @@
             if (!isDragging) return;
             isDragging = false;
 
-            // 💡 釋放全螢幕防護罩，讓手把回歸 85px 圓形大小
             dragHandle.classList.remove('dragging-active');
 
             if (!hasMoved) {
-                // 單純點擊：頭貼留在原地，對話框在右下角爆開
+                // 【情況一：單純點擊】
                 dragHandle.style.pointerEvents = 'none'; 
                 
                 const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
@@ -308,15 +299,18 @@
                     dragHandle.style.pointerEvents = 'auto'; 
                 }, 250);
             } else {
-                // 拖曳結束，儲存最終平移坐標
+                // 【情況二：真實拖曳結束】
                 lastX = currentX;
                 lastY = currentY;
-                // 回歸圓形後，手把要維持在拖完的坐標上
-                dragHandle.style.transform = `translate(${lastX}px, ${lastY}px)`;
+                
+                // 💡 關鍵修正：當全螢幕移除後，必須強迫本體與手把在同一個點上重新同步，斷絕 SDK 的定位衝突
+                const finalTransform = `translate(${lastX}px, ${lastY}px)`;
+                agentEl.style.transform = finalTransform;
+                dragHandle.style.transform = finalTransform;
             }
         }
 
-        // 託管監聽
+        // 事件監聽
         dragHandle.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', doDrag);
         window.addEventListener('mouseup', endDrag);
