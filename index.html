@@ -17,7 +17,7 @@
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
-           行程卡片視窗 (精準固定對齊右下角預設展開面板的左側)
+           行程卡片視窗 (完全維持你最滿意的標準右下角對齊樣式)
            ======================================================== */
         .itinerary-popup {
             display: none; 
@@ -85,7 +85,7 @@
         }
 
         /* ========================================================
-           真實的原生 Agent 樣式：100% 鎖死在右下角不曾離開
+           原生的 Agent 樣式：100% 雷打不動鎖死在右下角出生點！
            ======================================================== */
         sv-agent {
             display: block !important;
@@ -95,20 +95,10 @@
             width: 85px !important;
             height: 85px !important;
             z-index: 99999;
-            /* 初始狀態先隱藏原生的小圓圈，防止與替身重疊 */
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-
-        /* 當對話面板被激活動態展開時，強迫原生組件與頭貼完美現形 */
-        sv-agent.active-mode {
-            opacity: 1 !important;
-            pointer-events: auto !important;
         }
 
         /* ========================================================
-           💡 專屬獨立「替身大頭貼」：這才是使用者在網頁上隨意搬移的物理按鈕
+           💡 專屬獨立「拖曳分身頭貼」：100% 複刻外觀，這才是負責移動的物件
            ======================================================== */
         .draggable-clone-avatar {
             position: fixed;
@@ -117,14 +107,13 @@
             width: 85px;  
             height: 85px;
             border-radius: 50%;
-            /* 💡 完美核心：直接調用你 github page 上的圖檔，外觀達到 100% 絕對一致 */
+            /* 直接使用你網頁上的大頭貼截圖作為背景，外觀完全無縫吻合 */
             background-image: url('https://jacklin0118.github.io/my-website/screenshot.jpg'); 
-            background-color: #333; 
             background-size: cover;
             background-position: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             cursor: move;
-            z-index: 100010; /* 最頂層，第一優先接觸滑鼠 */
+            z-index: 100010; /* 最頂層，確保第一優先拉動 */
             touch-action: none;
         }
     </style>
@@ -179,13 +168,13 @@
         const avatarClone = document.getElementById('avatarClone');
 
         // ========================================================
-        // 智慧型對齊演算法：行程視窗永遠對齊右下角原生展開面板的左側
+        // 智慧型行程視窗平行對齊演算法 (維持原樣)
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
 
             const gapX = 15;
-            const expandedAgentWidth = 400; // 預估 Perxona 原生展開面板寬度
+            const expandedAgentWidth = 400; 
             
             itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
             itineraryWindow.style.left = 'auto';
@@ -198,7 +187,7 @@
         }
 
         // ========================================================
-        // 方案 B：全域點擊穿透監聽（當季小黃瓜照片）
+        // 方案 B 全域監聽
         // ========================================================
         window.addEventListener('click', (event) => {
             const path = event.composedPath();
@@ -207,8 +196,6 @@
             });
 
             if (hasClickedCucumber) {
-                // 開啟行程時，秘密將右下角真身顯現，面板順暢彈出
-                realAgent.classList.add('active-mode');
                 itineraryWindow.style.display = 'block';
                 setTimeout(matchAgentPosition, 100);
                 event.stopPropagation(); 
@@ -223,7 +210,7 @@
 
 
         // ========================================================
-        // 🚀 替身代理拖曳控制系統（解決閃爍、分身與 Preparing 轉圈問題）
+        // 🚀 完美的替身拖曳連動系統 (保證可拖曳、絕不轉圈圈)
         // ========================================================
         let isDragging = false;
         let startX, startY;
@@ -232,110 +219,115 @@
         let currentBottom = 20;
         let hasMoved = false;
 
-        // 定時自動檢查：當對話框未開啟時，確保右下角真身小圓圈 100% 透明，不造成疊影
-        setInterval(() => {
-            if (realAgent && realAgent.offsetHeight < 150) {
-                if (!realAgent.classList.contains('active-mode')) {
-                    realAgent.style.opacity = '0';
+        // 當原生元件完全加載好後，我們動態將右下角本體內的小泡泡稍微淡出隱藏，避免重疊
+        // 當面板展開（高度變長）時，則恢復顯示
+        function syncVisualBubble() {
+            if (realAgent && realAgent.shadowRoot) {
+                const innerObj = realAgent.shadowRoot.querySelector('div') || realAgent.shadowRoot.children[0];
+                if (innerObj) {
+                    if (realAgent.offsetHeight < 150) {
+                        innerObj.style.opacity = '0'; // 隱藏右下角重疊的原生小圈圈
+                    } else {
+                        innerObj.style.opacity = '1'; // 展開大面板時正常顯示
+                    }
                 }
             }
-        }, 300);
+        }
+        setInterval(syncVisualBubble, 200);
 
-        function startDrag(e) {
-            // 如果高度拉長（聊天室開了），鎖定禁止拖曳，防止打字操作衝突
-            if (realAgent && realAgent.offsetHeight > 150) return;
+        // 綁定在分身頭貼上的拖曳事件
+        avatarClone.addEventListener('mousedown', (e) => {
+            if (realAgent && realAgent.offsetHeight > 150) return; // 展開時鎖定
 
             isDragging = true;
             hasMoved = false;
 
-            const clientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
-            const clientY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
-            
-            startX = clientX;
-            startY = clientY;
+            startX = e.clientX;
+            startY = e.clientY;
             initialRight = currentRight;
             initialBottom = currentBottom;
 
             avatarClone.style.transition = 'none';
-            if(e.cancelable) e.preventDefault();
-        }
+            e.stopPropagation();
+        });
 
-        function doDrag(e) {
+        window.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
-            
-            const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
 
-            const deltaX = clientX - startX;
-            const deltaY = clientY - startY;
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
 
-            if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
                 hasMoved = true;
             }
 
             currentRight = initialRight - deltaX;
             currentBottom = initialBottom - deltaY;
 
-            // 限制不要拖出網頁視窗邊緣
+            // 視窗邊界碰撞檢查
             currentRight = Math.max(0, Math.min(currentRight, window.innerWidth - 85));
             currentBottom = Math.max(0, Math.min(currentBottom, window.innerHeight - 85));
 
             avatarClone.style.right = currentRight + 'px';
             avatarClone.style.bottom = currentBottom + 'px';
-        }
+        });
 
-        function endDrag() {
+        window.addEventListener('mouseup', () => {
             if (!isDragging) return;
             isDragging = false;
 
-            // 💡 實現最新連線圖與綠色箭頭的完美神級邏輯
+            // 💡 符合流程圖第 3 步點開的邏輯：
             if (!hasMoved) {
-                // 情況一：使用者只是單純「輕點一下」被拖到中間的替身頭貼
+                // 如果只是在中間「點一下」分身大頭貼
+                // 1. 分身大頭貼（`avatarClone`）不回彈、不隱形，老老實實留在你指定的位置。
                 
-                // 1. 中間的替身頭貼完全不隱形！不挪動！牢牢留在原地！
-                
-                // 2. 秘密解鎖右下角原生 Agent 的防禦，使其現形並開啟最高優先級的指針事件
-                realAgent.classList.add('active-mode');
-                
-                // 3. 【絕不騙你核心】將替身頭貼的 pointer-events 瞬間設為 none，讓使用者的滑鼠「真真正正點在右下角」！
-                avatarClone.style.pointerEvents = 'none';
-                
-                setTimeout(() => {
-                    // 利用 elementFromPoint 物理模擬使用者的手直接戳在最右下角原生 bubble 上面！
-                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                    if (clickTarget) {
-                        clickTarget.click(); // 👈 觸發完全標準的原生點擊！
+                // 2. 透過事件穿透引導，去點擊右下角雷打不動的真身原生位置
+                if (realAgent && realAgent.shadowRoot) {
+                    const innerObj = realAgent.shadowRoot.querySelector('div') || realAgent.shadowRoot.children[0];
+                    if (innerObj) {
+                        innerObj.click(); // 👈 在右下角老家點開它！
                     }
-                    
-                    // 4. 同步強迫粉色視窗靠右下角展開面板對齊
-                    setTimeout(matchAgentPosition, 50);
-
-                    // 點擊完成後，恢復替身大頭貼的滑鼠觸控權限
-                    setTimeout(() => {
-                        avatarClone.style.pointerEvents = 'auto';
-                    }, 300);
-                }, 50);
-            }
-        }
-
-        // 全域監聽：如果使用者點擊網頁其他地方關閉了對話框
-        window.addEventListener('click', () => {
-            setTimeout(() => {
-                if (realAgent && realAgent.offsetHeight < 150) {
-                    realAgent.classList.remove('active-mode');
-                    realAgent.style.opacity = '0'; // 重新將右下角的真身小圓圈隱藏
                 }
-            }, 300);
+                setTimeout(matchAgentPosition, 100);
+            }
         });
 
-        // 監聽替身控制
-        avatarClone.addEventListener('mousedown', startDrag);
-        window.addEventListener('mousemove', doDrag);
-        window.addEventListener('mouseup', endDrag);
+        // 同步支援行動端手機觸控
+        avatarClone.addEventListener('touchstart', (e) => {
+            if (realAgent && realAgent.offsetHeight > 150) return;
+            isDragging = true;
+            hasMoved = false;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            initialRight = currentRight;
+            initialBottom = currentBottom;
+            avatarClone.style.transition = 'none';
+        });
 
-        avatarClone.addEventListener('touchstart', startDrag, { passive: false });
-        window.addEventListener('touchmove', doDrag, { passive: false });
-        window.addEventListener('touchend', endDrag);
+        window.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.touches[0].clientX - startX;
+            const deltaY = e.touches[0].clientY - startY;
+            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved = true;
+            
+            currentRight = Math.max(0, Math.min(initialRight - deltaX, window.innerWidth - 85));
+            currentBottom = Math.max(0, Math.min(initialBottom - deltaY, window.innerHeight - 85));
+            
+            avatarClone.style.right = currentRight + 'px';
+            avatarClone.style.bottom = currentBottom + 'px';
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            if (!hasMoved) {
+                if (realAgent && realAgent.shadowRoot) {
+                    const innerObj = realAgent.shadowRoot.querySelector('div') || realAgent.shadowRoot.children[0];
+                    if (innerObj) innerObj.click();
+                }
+                setTimeout(matchAgentPosition, 100);
+            }
+        });
     </script>
 
 </body>
