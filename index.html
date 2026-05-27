@@ -17,7 +17,7 @@
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
-           行程卡片視窗
+           行程卡片視窗 (維持你最滿意的隨動排版樣式)
            ======================================================== */
         .itinerary-popup {
             display: none; 
@@ -85,39 +85,33 @@
         }
 
         /* ========================================================
-           智慧綜合容器：把手把和 Agent 牢牢鎖在同一個物理坐標軸上
+           💡 終極定位：讓 Agent 與 隱形手把各自獨立，不互相干擾壓迫
            ======================================================== */
-        .agent-master-box {
+        sv-agent {
+            display: block !important;
             position: fixed !important;
             bottom: 20px !important;
             right: 20px !important;
-            width: 85px;  
-            height: 85px;
+            width: 85px !important;
+            height: 85px !important;
             z-index: 99999;
-            touch-action: none;
-            /* 💡 移除任何會導致閃爍的原生定位干擾，改用最高級圖層渲染 */
             will-change: transform;
         }
 
-        /* 強制讓套件本體撐滿舞台，展開時由它內部自己延伸 */
-        sv-agent {
-            display: block !important;
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        /* 透明拖曳手把：精準覆蓋在未展開的大頭貼正上方 */
-        .drag-handle {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 85px;      
-            height: 85px;     
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0); 
-            border: none;
-            cursor: move;     
-            z-index: 100006;  /* 絕對第一優先權 */
+        /* 隱形手把：完全獨立於 body 最外層，這樣它的滑鼠事件絕對不會被 Shadow DOM 吃掉！ */
+        #globalDragHandle {
+            position: fixed !important;
+            bottom: 20px !important;
+            right: 20px !important;
+            width: 85px !important;
+            height: 85px !important;
+            border-radius: 50% !important;
+            background: rgba(0, 0, 0, 0) !important; /* 保持完全透明 */
+            border: none !important;
+            cursor: move !important;
+            z-index: 100010 !important; /* 凌駕在所有元素之上 */
+            touch-action: none !important;
+            will-change: transform;
         }
     </style>
     <script
@@ -130,15 +124,14 @@
     <h1>Welcome to My Personal Website!</h1>
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
-    <div class="agent-master-box" id="masterBox">
-        <div class="drag-handle" id="dragHandle"></div>
-        <sv-agent
-          id="perxonaAgent"
-          agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
-          presentationMode="bubble"
-          apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
-        ></sv-agent>
-    </div>
+    <sv-agent
+      id="perxonaAgent"
+      agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
+      presentationMode="bubble"
+      apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
+    ></sv-agent>
+
+    <div id="globalDragHandle"></div>
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
@@ -169,30 +162,27 @@
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
         const agentEl = document.getElementById('perxonaAgent');
-        const dragHandle = document.getElementById('dragHandle');
-        const masterBox = document.getElementById('masterBox');
+        const dragHandle = document.getElementById('globalDragHandle');
 
-        // 紀錄累積變形位移量
         let currentX = 0;
         let currentY = 0;
 
         // ========================================================
-        // 智慧型隨動對齊演算法：強制粉色視窗跟隨拖曳後的即時坐標
+        // 智慧型隨動對齊演算法：行程視窗永遠黏在 Agent 展開後的左側
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
 
-            // 抓取移動後外殼的即時物理邊界
-            const rect = masterBox.getBoundingClientRect();
+            // 實時抓取隱形手把此時此刻在螢幕上的物理座標
+            const rect = dragHandle.getBoundingClientRect();
 
             const gapX = 15;
             const expandedAgentWidth = 400; // 預估展開寬度
             
-            // 💡 核心改良：不要用 right，直接用左側坐標 (rect.left) 往前推算，保證隨動精準
+            // 從手把當前的物理左側 (rect.left) 來精準往左定位
             itineraryWindow.style.right = (window.innerWidth - rect.left + expandedAgentWidth - 85 + gapX) + 'px';
             itineraryWindow.style.left = 'auto';
 
-            // Y 軸對齊
             const desiredTop = 80;  
             const desiredHeight = window.innerHeight - desiredTop - 120; 
 
@@ -224,7 +214,7 @@
 
 
         // ========================================================
-        // 🚀 3. 升級版變形平移控制（完美解決閃爍、分身與展開跑位問題）
+        // 🚀 核心雙向一體化拖曳（100% 成功解決卡死與分身問題）
         // ========================================================
         let isDragging = false;
         let startX, startY;
@@ -233,7 +223,7 @@
         let hasMoved = false;
 
         function startDrag(e) {
-            // 如果高度變長（代表對話框開了），立刻鎖定禁止拖曳，防止打字誤觸
+            // 當聊天面板打開後（高度大於150px），鎖定不允許搬移
             if (agentEl && agentEl.offsetHeight > 150) return;
 
             isDragging = true;
@@ -245,7 +235,9 @@
             startX = clientX;
             startY = clientY;
 
-            masterBox.style.transition = 'none';
+            // 關閉過渡動畫，確保極致貼手
+            agentEl.style.transition = 'none';
+            dragHandle.style.transition = 'none';
             
             if(e.cancelable) e.preventDefault();
             e.stopPropagation();
@@ -267,15 +259,17 @@
             currentX = lastX + deltaX;
             currentY = lastY + deltaY;
 
-            // 螢幕安全邊界碰撞檢查
+            // 邊界檢查
             const rect = dragHandle.getBoundingClientRect();
             if (rect.left + deltaX < 0 || rect.right + deltaX > window.innerWidth) currentX = lastX;
             if (rect.top + deltaY < 0 || rect.bottom + deltaY > window.innerHeight) currentY = lastY;
 
-            // 💡 直接對 MasterBox 使用平移，100% 絕不閃爍、不生分身！
-            masterBox.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            // 💡 核心聯動：滑鼠拉動手把時，手把與底下的 Agent 兩者以「完全獨立」的姿態同步進行變形平移
+            // 如此一來，Perxona 的虛擬 DOM 永遠沒機會觸發其防禦重繪機制，徹底消滅閃爍與分身！
+            const transformStyle = `translate(${currentX}px, ${currentY}px)`;
+            agentEl.style.transform = transformStyle;
+            dragHandle.style.transform = transformStyle;
 
-            // 如果行程視窗本來就是開著的，拖曳時一起即時流暢同步
             if (itineraryWindow.style.display === 'block') {
                 matchAgentPosition();
             }
@@ -288,32 +282,33 @@
             lastX = currentX;
             lastY = currentY;
 
-            // 情境：使用者只是「輕點一下」
+            // 情境：使用者只是「輕輕點一下」大頭貼想開啟聊天
             if (!hasMoved) {
-                // 💡 注意：我們不再重置吸回右下角了！讓它留在原地展開！
-                dragHandle.style.pointerEvents = 'none'; // 暫時讓點擊穿透隱形手把
+                dragHandle.style.pointerEvents = 'none'; // 點擊穿透
                 
-                // 動態取得當前大頭貼在全螢幕上的精準中心點坐標，並實施雷射點擊
+                // 精確取得手把此時此刻在全螢幕上的中心點坐標
                 const rect = dragHandle.getBoundingClientRect();
                 const targetX = rect.left + (rect.width / 2);
                 const targetY = rect.top + (rect.height / 2);
                 
+                // 從網頁最上層往下發射雷射點擊
                 const clickTarget = document.elementFromPoint(targetX, targetY);
                 if (clickTarget) {
-                    clickTarget.click(); // 在目前拖到的位置原地喚醒 Perxona 聊天室！
+                    clickTarget.click(); // 在目前搬移到的新位置原地打開聊天室！
                 }
                 
                 setTimeout(() => {
-                    dragHandle.style.pointerEvents = 'auto'; // 悄悄把手把功能裝回來
+                    dragHandle.style.pointerEvents = 'auto'; // 恢復手把
                 }, 250);
             }
         }
 
-        // 監聽
+        // 全域網頁託管，滑鼠拉得再猛也絕對不脫鉤卡死
         dragHandle.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', doDrag);
         window.addEventListener('mouseup', endDrag);
 
+        // 同步完美支援手機觸控
         dragHandle.addEventListener('touchstart', startDrag, { passive: false });
         window.addEventListener('touchmove', doDrag, { passive: false });
         window.addEventListener('touchend', endDrag);
