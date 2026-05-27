@@ -17,43 +17,29 @@
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
-           1. 專屬外容器：不影響 Agent 原生展開，但能讓我們追蹤位置
+           微調 Agent 原生樣式：為了讓 JS 能控制它在全螢幕的位置，
+           我們把它強制設定為 position: fixed，並加上滑鼠「手掌」指標。
            ======================================================== */
-        .agent-container {
-            position: fixed !important;
-            bottom: 20px; 
-            right: 20px;  
-            width: 85px;  
-            height: 85px; 
-            z-index: 99999;
-            touch-action: none;
-        }
-
         sv-agent {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        /* 隱形拖曳手把 */
-        .drag-handle {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 80px;      
-            height: 80px;     
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0); 
-            border: none;
-            cursor: move;     
-            z-index: 100001;  
+            position: fixed !important;
+            bottom: 20px; /* 初始位置 */
+            right: 20px;  /* 初始位置 */
+            cursor: move; /* 提示使用者這個可以拖曳 */
+            touch-action: none; /* 防止手機拖曳時網頁跟著滾動 */
         }
 
         /* ========================================================
-           2. 行程卡片視窗（對齊展開面板專用樣式）
+           行程卡片視窗 (維持原樣)
            ======================================================== */
         .itinerary-popup {
             display: none; 
             position: fixed;
+            bottom: 100px;
+            right: 420px;
+            width: 60vw;
+            max-width: 800px;
+            height: 70vh;
+            max-height: 600px;
             background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
@@ -62,11 +48,6 @@
             box-sizing: border-box;
             text-align: left;
             overflow-y: auto;
-            
-            /* 寬度稍微拉長，呈現舒適的長方形 */
-            width: 55vw;
-            max-width: 850px;
-            
             animation: fadeIn 0.3s ease-out;
         }
 
@@ -126,15 +107,12 @@
     <h1>Welcome to My Personal Website!</h1>
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
-    <div class="agent-container" id="agentWrapper">
-        <div class="drag-handle" id="dragHandle"></div>
-        <sv-agent
-          id="myAgent"
-          agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
-          presentationMode="bubble"
-          apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
-        ></sv-agent>
-    </div>
+    <sv-agent
+      id="draggableAgent"
+      agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
+      presentationMode="bubble"
+      apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
+    ></sv-agent>
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
@@ -164,44 +142,10 @@
     <script>
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
-        const agentWrapper = document.getElementById('agentWrapper');
-        const dragHandle = document.getElementById('dragHandle');
-        const svAgent = document.getElementById('myAgent');
-
-        // 用來防止無效重複執行的鎖
-        let resizeTimeout;
+        const agent = document.getElementById('draggableAgent');
 
         // ========================================================
-        // 核心定位智慧演算法 (優化防抖版，不再死循環 refresh)
-        // ========================================================
-        function updatePopupPosition() {
-            // 如果行程視窗根本沒打開，就不要進行任何計算
-            if (itineraryWindow.style.display !== 'block') return;
-
-            const wrapperRect = agentWrapper.getBoundingClientRect();
-            
-            // 1. 【Y 軸控制】
-            const topPosition = 100;     
-            const bottomMargin = 200;    
-
-            itineraryWindow.style.top = topPosition + 'px';
-            itineraryWindow.style.height = `calc(100vh - ${bottomMargin}px)`;
-
-            // 2. 【X 軸控制】
-            const xOffset = 410;         
-
-            const baseRight = window.innerWidth - wrapperRect.right;
-            
-            // 只有在數值真正改變時才更新 DOM，避免頻繁刷頁面
-            const targetRight = (baseRight + xOffset) + 'px';
-            if (itineraryWindow.style.right !== targetRight) {
-                itineraryWindow.style.right = targetRight;
-            }
-            itineraryWindow.style.bottom = 'auto'; 
-        }
-
-        // ========================================================
-        // 全域監聽點擊「當季小黃瓜照片」
+        // 1. 方案 B：全域監聽，點擊對話框內按鈕跳出行程
         // ========================================================
         window.addEventListener('click', (event) => {
             const path = event.composedPath();
@@ -211,8 +155,8 @@
 
             if (hasClickedCucumber) {
                 itineraryWindow.style.display = 'block';
-                // 使用稍微長一點的延遲，等 Perxona DOM 穩定展開，防止無限閃爍
-                setTimeout(updatePopupPosition, 150);
+                // 連動調整行程視窗位置，讓它永遠緊貼在 Agent 目前位置的左邊
+                updatePopupPosition();
                 event.stopPropagation();
             }
         });
@@ -221,89 +165,84 @@
             itineraryWindow.style.display = 'none';
         });
 
-        // 加上防抖（Debounce），避免 resize 事件跟 Perxona 內部互相衝突形成無窮迴圈
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                updatePopupPosition();
-            }, 100);
-        });
-
-        // ========================================================
-        // 拖曳邏輯 (加入 hasMoved 判定優化)
-        // ========================================================
-        let isDragging = false;
-        let startX, startY;
-        let initialLeft, initialTop;
-        let hasMoved = false;
-
-        function startDrag(e) {
-            // 如果目前 Agent 容器的高度大於 150 (代表聊天室已經展開了)，禁止拖曳，避免打字跟點擊異常
-            if (agentWrapper.offsetHeight > 150) return;
-
-            isDragging = true;
-            hasMoved = false;
-            const clientX = e.clientX || e.touches[0].clientX;
-            const clientY = e.clientY || e.touches[0].clientY;
-            startX = clientX;
-            startY = clientY;
-            const rect = agentWrapper.getBoundingClientRect();
-            initialLeft = rect.left;
-            initialTop = rect.top;
-            agentWrapper.style.transition = 'none';
+        // 動態調整行程視窗位置的函式
+        function updatePopupPosition() {
+            const agentRect = agent.getBoundingClientRect();
+            // 讓行程視窗維持在 Agent 左邊 20 像素的位置
+            itineraryWindow.style.right = (window.innerWidth - agentRect.left + 20) + 'px';
+            itineraryWindow.style.bottom = (window.innerHeight - agentRect.bottom) + 'px';
         }
 
+
+        // ========================================================
+        // 2. 核心黑科技：讓 Agent 支援滑鼠與觸控自由拖曳
+        // ========================================================
+        let isDragging = false;
+        let offsetX, offsetY;
+
+        // 滑鼠/手指 按下時觸發
+        function startDrag(e) {
+            // 如果聊天室已經打開（高度變得很大），就不允許拖曳，避免打字時誤觸
+            if (agent.offsetHeight > 150) return;
+
+            isDragging = true;
+            
+            // 相容滑鼠點擊與手機觸控
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+            
+            const rect = agent.getBoundingClientRect();
+            
+            // 計算滑鼠點擊點相對於 Agent 元件左上角的距離
+            offsetX = clientX - rect.left;
+            offsetY = clientY - rect.top;
+
+            // 拖曳時取消原本的 CSS transition 效果，讓拖曳更貼手
+            agent.style.transition = 'none';
+        }
+
+        // 滑鼠/手指 移動時觸發
         function doDrag(e) {
             if (!isDragging) return;
+            e.preventDefault();
+
             const clientX = e.clientX || (e.touches && e.touches[0].clientX);
             const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            const deltaX = clientX - startX;
-            const deltaY = clientY - startY;
 
-            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-                hasMoved = true;
-            }
+            // 計算出 Agent 新的座標值
+            let left = clientX - offsetX;
+            let top = clientY - offsetY;
 
-            let newLeft = initialLeft + deltaX;
-            let newTop = initialTop + deltaY;
-            newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - agentWrapper.offsetWidth));
-            newTop = Math.max(0, Math.min(newTop, window.innerHeight - agentWrapper.offsetHeight));
+            // 限制 Agent 不能被拖出瀏覽器螢幕外面
+            const maxLeft = window.innerWidth - agent.offsetWidth;
+            const maxTop = window.innerHeight - agent.offsetHeight;
+            left = Math.max(0, Math.min(left, maxLeft));
+            top = Math.max(0, Math.min(top, maxTop));
 
-            agentWrapper.style.right = 'auto';
-            agentWrapper.style.bottom = 'auto';
-            agentWrapper.style.left = newLeft + 'px';
-            agentWrapper.style.top = newTop + 'px';
+            // 改用 left 和 top 來即時更新位置（覆蓋掉原本的 right/bottom）
+            agent.style.right = 'auto';
+            agent.style.bottom = 'auto';
+            agent.style.left = left + 'px';
+            agent.style.top = top + 'px';
 
+            // 如果行程視窗本來就是打開的，拖曳時一起跟著移動
             if (itineraryWindow.style.display === 'block') {
                 updatePopupPosition();
             }
         }
 
+        // 放開滑鼠/手指 時結束拖曳
         function endDrag() {
-            if (!isDragging) return;
             isDragging = false;
-
-            if (!hasMoved) {
-                // 如果只是點一下，短暫移開手把讓點擊穿透下去開啟聊天室
-                dragHandle.style.pointerEvents = 'none';
-                const clickTarget = document.elementFromPoint(startX, startY);
-                if (clickTarget) {
-                    clickTarget.click();
-                }
-                setTimeout(() => {
-                    dragHandle.style.pointerEvents = 'auto';
-                }, 300);
-            } else {
-                // 如果有搬動位置，放開後釋放 Wrapper 限制寬高
-                agentWrapper.style.width = 'auto';
-                agentWrapper.style.height = 'auto';
-            }
         }
 
-        dragHandle.addEventListener('mousedown', startDrag);
+        // 監聽滑鼠事件 (電腦端)
+        agent.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', doDrag);
         window.addEventListener('mouseup', endDrag);
-        dragHandle.addEventListener('touchstart', startDrag, { passive: false });
+
+        // 監聽觸控事件 (手機/平板端)
+        agent.addEventListener('touchstart', startDrag, { passive: false });
         window.addEventListener('touchmove', doDrag, { passive: false });
         window.addEventListener('touchend', endDrag);
     </script>
