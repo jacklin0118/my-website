@@ -17,7 +17,39 @@
         p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
-           行程卡片視窗（透過 JS 賦予動態位置，移除固定 bottom/right）
+           1. 專屬外容器：不影響 Agent 原生展開，但能讓我們追蹤與控制位置
+           ======================================================== */
+        .agent-container {
+            position: fixed !important;
+            bottom: 20px; /* 初始位置 */
+            right: 20px;  /* 初始位置 */
+            width: 85px;  
+            height: 85px; 
+            z-index: 99999;
+            touch-action: none;
+        }
+
+        sv-agent {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* 隱形拖曳手把（疊在大頭貼上方） */
+        .drag-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 80px;      
+            height: 80px;     
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0); 
+            border: none;
+            cursor: move;     
+            z-index: 100001;  
+        }
+
+        /* ========================================================
+           2. 行程卡片視窗（動態計算位置專用樣式）
            ======================================================== */
         .itinerary-popup {
             display: none; /* 預設隱藏 */
@@ -25,7 +57,7 @@
             background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            z-index: 99998;      /* 確保高於一般網頁內容 */
+            z-index: 99998;      
             padding: 30px;
             box-sizing: border-box;
             text-align: left;
@@ -97,12 +129,15 @@
     <h1>Welcome to My Personal Website!</h1>
     <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
-    <sv-agent
-      id="perxonaAgent"
-      agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
-      presentationMode="bubble"
-      apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
-    ></sv-agent>
+    <div class="agent-container" id="agentWrapper">
+        <div class="drag-handle" id="dragHandle"></div>
+        <sv-agent
+          id="perxonaAgent"
+          agentProfileId="01KP8ABYYJEXFYFY5R5NPGP0DZ"
+          presentationMode="bubble"
+          apiKey="4df0b8b9-13a5-4f0d-aa99-607eacf94190"
+        ></sv-agent>
+    </div>
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
@@ -133,60 +168,150 @@
     <script>
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
+        const agentWrapper = document.getElementById('agentWrapper');
+        const dragHandle = document.getElementById('dragHandle');
         const agentEl = document.getElementById('perxonaAgent');
 
         // ========================================================
-        // 智慧型對齊演算法：強制讓粉色視窗與 Agent 展開面板平行
+        // 智慧型隨動對齊演算法：無論 Agent 被拖到哪，粉色視窗都精準對齊
         // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
 
-            // 1. 抓取 Perxona Agent 視窗在瀏覽器上的真實邊界位置
-            const agentRect = agentEl.getBoundingClientRect();
+            // 1. 抓取目前外殼（Wrapper）在網頁上的即時坐標
+            const rect = agentWrapper.getBoundingClientRect();
 
-            // 2. 核心 X 軸計算：讓粉色視窗的右側，精準靠在 Agent 視窗的左側 (並留 15px 的美觀空隙)
-            // 由於 Perxona 展開後寬度通常會撐大（約 380px~400px）
-            // 如果從外層抓不到內部 Shadow 寬度，我們直接用螢幕邊界扣掉間距來推算：
-            const gapX = 15; // 左右視窗的間隔距離
-            const expandedAgentWidth = 400; // 預估 Perxona 展開後的聊天室總寬度
+            // 2. 智慧 X 軸連動：不管拖到哪，粉色視窗右側永遠貼在 Agent 左邊 (空隙 15px)
+            // 當 Agent 展開成面板時，面板最右側與原本的外殼圓心對齊，故我們從 rect.right 反推
+            const gapX = 15;
+            const expandedAgentWidth = 400; // Perxona 面板展開的寬度
             
-            itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
+            // 計算出粉色視窗該設定的 right 距離
+            const calculatedRight = window.innerWidth - rect.right + expandedAgentWidth + gapX;
+            itineraryWindow.style.right = calculatedRight + 'px';
+            itineraryWindow.style.left = 'auto';
 
-            // 3. 核心 Y 軸平行計算：強迫高度與頂端跟 Agent 完全一致
-            // 由於 Perxona 展開後通常會固定在距離頂部 60px~100px 或是固定高度
-            const desiredTop = 80;  // 與截圖中 Agent 視窗頂部平齊的座標位置
-            const desiredHeight = window.innerHeight - desiredTop - 120; // 讓底部高度跟對話框下緣維持平行
+            // 3. 智慧 Y 軸連動：強迫粉色視窗高度、頂端跟右側展開面板完全平行
+            const desiredTop = 80;  // 平行對齊頂部
+            const desiredHeight = window.innerHeight - desiredTop - 120; // 底部對齊
 
             itineraryWindow.style.top = desiredTop + 'px';
             itineraryWindow.style.height = desiredHeight + 'px';
         }
 
         // ========================================================
-        // 方案 B：全域監聽點擊，穿透 Shadow DOM 偵測關鍵字
+        // 方案 B：全域點擊穿透監聽（當季小黃瓜照片）
         // ========================================================
         window.addEventListener('click', (event) => {
             const path = event.composedPath();
-            
             const hasClickedCucumber = path.some(element => {
                 return element.textContent && element.textContent.trim() === '當季小黃瓜照片';
             });
 
             if (hasClickedCucumber) {
                 itineraryWindow.style.display = 'block';
-                
-                // 使用一小段延遲 (100毫秒)，確保 Agent 的展開動畫完成後，再行抓取精準坐標
+                // 延遲一下下，等展開動畫做完再精準抓取最新座標
                 setTimeout(matchAgentPosition, 100);
                 event.stopPropagation(); 
             }
         });
 
-        // 點擊 X 關閉行程視窗
         closeItineraryBtn.addEventListener('click', () => {
             itineraryWindow.style.display = 'none';
         });
 
-        // 當瀏覽器縮放或改變大小時，即時保持視窗對齊
         window.addEventListener('resize', matchAgentPosition);
+
+
+        // ========================================================
+        // 3. 核心拖曳功能邏輯 (相容電腦滑鼠與手機觸控)
+        // ========================================================
+        let isDragging = false;
+        let startX, startY;
+        let initialLeft, initialTop;
+        let hasMoved = false;
+
+        function startDrag(e) {
+            // 如果面板已經展開（高度變長），此時鎖定拖曳，避免聊天、滑動時誤觸
+            if (agentWrapper.offsetHeight > 150) return;
+
+            isDragging = true;
+            hasMoved = false;
+
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+            
+            startX = clientX;
+            startY = clientY;
+            
+            const rect = agentWrapper.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            agentWrapper.style.transition = 'none';
+        }
+
+        function doDrag(e) {
+            if (!isDragging) return;
+            
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+            const deltaX = clientX - startX;
+            const deltaY = clientY - startY;
+
+            // 移動超過 5 像素才判定為拖曳
+            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+                hasMoved = true;
+            }
+
+            let newLeft = initialLeft + deltaX;
+            let newTop = initialTop + deltaY;
+
+            // 防止大頭貼被拖出瀏覽器視窗外
+            newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - agentWrapper.offsetWidth));
+            newTop = Math.max(0, Math.min(newTop, window.innerHeight - agentWrapper.offsetHeight));
+
+            // 即時更新 Agent 容器位置
+            agentWrapper.style.right = 'auto';
+            agentWrapper.style.bottom = 'auto';
+            agentWrapper.style.left = newLeft + 'px';
+            agentWrapper.style.top = newTop + 'px';
+
+            // 重點：如果行程視窗本來就是打開的，拖曳時左邊粉色視窗會即時跟隨移動！
+            if (itineraryWindow.style.display === 'block') {
+                matchAgentPosition();
+            }
+        }
+
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+
+            // 如果沒移動，代表使用者是要「點擊大頭貼開啟聊天」
+            if (!hasMoved) {
+                dragHandle.style.pointerEvents = 'none'; // 讓點擊穿透透明層
+                const clickTarget = document.elementFromPoint(startX, startY);
+                if (clickTarget) clickTarget.click();
+                setTimeout(() => {
+                    dragHandle.style.pointerEvents = 'auto';
+                }, 300);
+            } else {
+                // 如果移動過了，釋放外殼限制，確保聊天室可以正常往上展開
+                agentWrapper.style.width = 'auto';
+                agentWrapper.style.height = 'auto';
+            }
+        }
+
+        // 電腦端監聽
+        dragHandle.addEventListener('mousedown', startDrag);
+        window.addEventListener('mousemove', doDrag);
+        window.addEventListener('mouseup', endDrag);
+
+        // 手機端監聽
+        dragHandle.addEventListener('touchstart', startDrag, { passive: false });
+        window.addEventListener('touchmove', doDrag, { passive: false });
+        window.addEventListener('touchend', endDrag);
     </script>
 
 </body>
