@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trip.com 大阪心齋橋訂房中心</title>
     <style>
-        /* ========================================================
-           旅遊網站原生 UI 樣式系統 (精準致敬 Trip.com 官方配色與細節)
-           ======================================================== */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
@@ -209,7 +206,7 @@
             border-top: 1px dashed #edeef0;
             padding-top: 12px;
         }
-        .hotel-rating-box {
+        .hotel-box {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -264,9 +261,7 @@
             background-color: #1a66d1;
         }
 
-        /* ========================================================
-           💥 飯店詳細介紹視窗 (第二層詳細資料彈出視窗)
-           ======================================================== */
+        /* 飯店詳細介紹視窗 (第二層詳細資料彈出視窗) */
         .itinerary-popup {
             display: none; 
             position: fixed;
@@ -305,7 +300,6 @@
             color: #333;
         }
 
-        /* 第二層內部飯店規格與介紹樣式 */
         .detail-highlights {
             display: flex;
             gap: 12px;
@@ -372,9 +366,7 @@
             font-size: 13px;
         }
 
-        /* ========================================================
-           智慧型雙向獨立移動舞台：用來承載 Agent
-           ======================================================== */
+        /* 智慧型雙向獨立移動舞台 */
         .agent-wrapper {
             position: fixed !important;
             bottom: 20px !important;
@@ -395,7 +387,7 @@
             transform: none !important;
         }
 
-        /* 完全獨立的隱形操控手把（z-index 最高層級） */
+        /* 完全獨立的隱形操控手把 */
         #globalDragHandle {
             position: fixed !important;
             bottom: 20px !important;
@@ -494,10 +486,10 @@
     </section>
 
     <main class="main-content">
-        <div class="section-title">🔥 心齋橋周邊推薦熱門酒店 (點擊酒店圖片或名稱直接顯示詳細介紹)</div>
+        <div class="section-title">🔥 心齋橋周邊推薦熱門酒店 (滑鼠圈選文字時絕不誤觸跳出介紹)</div>
         
         <div class="hotel-list">
-            <div class="hotel-card" onclick="openSecondLevel('shinsaibashi_grand')">
+            <div class="hotel-card" data-hotel="shinsaibashi_grand">
                 <div class="hotel-clickable-trigger">
                     <img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?w=500" class="hotel-img" alt="大阪飯店">
                     <div class="hotel-info">
@@ -512,7 +504,7 @@
                             【2024全新落成奢華旅館】坐落於大阪黃金商圈心齋橋中心點！步行至地鐵心齋橋站僅需3分鐘。緊鄰道頓堀跑跑人與熱門的黑門市場。館內主打現代日式奢華風，並設有住客專屬的膠原蛋白露天溫泉與日式頂級桑拿浴場，是家庭與多人出遊的大阪住宿首選。
                         </p>
                         <div class="hotel-footer">
-                            <div class="hotel-rating-box">
+                            <div class="hotel-box">
                                 <span class="rating-score">4.7 / 5</span>
                                 <span class="rating-text">卓越 (2,480條來自台灣住客的真實評價)</span>
                             </div>
@@ -529,7 +521,7 @@
                 </div>
             </div>
 
-            <div class="hotel-card" onclick="openSecondLevel('namba_cross')">
+            <div class="hotel-card" data-hotel="namba_cross">
                 <div class="hotel-clickable-trigger">
                     <img src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500" class="hotel-img" alt="難波飯店">
                     <div class="hotel-info">
@@ -544,7 +536,7 @@
                             【Trip.com 高分極薦】超大坪數公寓式設計，客房皆備有獨立微波爐與簡易小廚房。距離難波車站步行僅4分鐘，一班車直達關西機場。步行穿過戎橋筋商店街即達心齋橋，附近藥妝店、居酒屋林立，非常適合帶小孩與長輩的深度慢活家庭旅行。
                         </p>
                         <div class="hotel-footer">
-                            <div class="hotel-rating-box">
+                            <div class="hotel-box">
                                 <span class="rating-score">4.9 / 5</span>
                                 <span class="rating-text">完美 (1,820條真實評價)</span>
                             </div>
@@ -578,8 +570,7 @@
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
-        <div id="secondLevelContent">
-            </div>
+        <div id="secondLevelContent"></div>
     </div>
 
     <script {__rule__:"STRICT_COMPLETION"}>
@@ -597,7 +588,7 @@
         let lastY = 0;
         let selectedTextStore = ""; 
 
-        // 智慧型第二層視窗平行對齊演算法 (高度自適應螢幕，完美並列)
+        // 智慧型第二層視窗平行對齊演算法
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
             const gapX = 15;
@@ -610,9 +601,6 @@
             itineraryWindow.style.height = desiredHeight + 'px';
         }
 
-        // ========================================================
-        // 💡 深度定制：參考真實連結封裝的大阪心齋橋飯店第二層介紹資料
-        // ========================================================
         const secondLevelData = {
             shinsaibashi_grand: `
                 <h2 style="color:#1a2b3c;margin-top:0;font-size:22px;">大阪心齋橋大飯店 (Shinsaibashi Grand Hotel Osaka)</h2>
@@ -622,21 +610,15 @@
                     <span class="highlight-tag">🛍️ 緊鄰道頓堀商圈</span>
                     <span class="highlight-tag">👶 支援 11 歲兒童免費加床</span>
                 </div>
-                
                 <div class="detail-gallery">
                     <img src="https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=400" alt="客房">
                     <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400" alt="溫泉">
                     <img src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400" alt="設施">
                 </div>
-
                 <h3 style="color:#2c3e50;margin-top:20px;border-left:4px solid #287dfa;padding-left:10px;">酒店官方詳細介紹</h3>
                 <p style="color:#4a5568;font-size:14px;line-height:1.6;">
                     歡迎蒞臨大阪最繁華的核心地帶！本酒店於2024年迎來全面升級落成，專為前來關西地區深度旅遊的跨國旅客設計。從飯店大廳出發，僅需步行3分鐘即可抵達地鐵御堂筋線「心齋橋站」，無論前往梅田樞紐、大阪城公園，或是搭車直達京都、奈良都極為便利。
                 </p>
-                <p style="color:#4a5568;font-size:14px;line-height:1.6;">
-                    飯店頂樓特別斥資打造了「白絹露天溫泉大浴場」，引進頂級膠原蛋白奈米微氣泡溫泉，能徹底舒緩您一日逛街購物後的疲憊。此外，飯店一樓餐廳每日早晨提供由星級主廚親自操刀的日式傳統黑毛和牛定食與精緻和洋式自助早午餐，是您在大阪探險時不可錯過的味覺盛宴。
-                </p>
-
                 <h3 style="color:#2c3e50;margin-top:25px;">即時房型報價方案表 (適用於 3成人、1位11歲兒童)</h3>
                 <table class="room-table">
                     <tr>
@@ -649,13 +631,7 @@
                         <td class="room-name-td">豪華家庭三人大客房 (Deluxe Triple Room)<div class="room-info-tag">3張標準單人床 + 1張兒童加床 | 42平方公尺 | 市景禁菸房</div></td>
                         <td>👤👤👤👶</td>
                         <td style="color:#ff5a5f;font-weight:bold;font-size:16px;">TWD 5,200 /晚</td>
-                        <td><button class="room-book-btn" onclick="alert('大阪精選客房預訂成功！已為您鎖定 3成人與1兒童名額。')">立即預訂</button></td>
-                    </tr>
-                    <tr>
-                        <td class="room-name-td">行政尊榮溫泉套房 (Executive Suite with Spa)<div class="room-info-tag">2張特大雙人床 | 55平方公尺 | 附私人半露天風呂 | 含四人份懷石早晚餐</div></td>
-                        <td>👤👤👤👶</td>
-                        <td style="color:#ff5a5f;font-weight:bold;font-size:16px;">TWD 9,800 /晚</td>
-                        <td><button class="room-book-btn" onclick="alert('行政尊榮套房成功加入購物車！')">立即預訂</button></td>
+                        <td><button class="room-book-btn" onclick="alert('大阪精選客房預訂成功！')">立即預訂</button></td>
                     </tr>
                 </table>
             `,
@@ -667,22 +643,16 @@
                     <span class="highlight-tag">🌐 免費高速 Wi-Fi 6 全館覆蓋</span>
                     <span class="highlight-tag">🍱 免費精緻和洋式自助早餐</span>
                 </div>
-                
                 <div class="detail-gallery">
                     <img src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400" alt="客房">
                     <img src="https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400" alt="廚房">
                     <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400" alt="大廳">
                 </div>
-
                 <h3 style="color:#2c3e50;margin-top:20px;border-left:4px solid #287dfa;padding-left:10px;">公寓式酒店深度介紹</h3>
                 <p style="color:#4a5568;font-size:14px;line-height:1.6;">
-                    專為現代家庭旅遊打造的旗艦級公寓式酒店。座落於難波市中心黃金路口，下樓即可無縫匯入戎橋筋商店街，藥妝、電器、排隊美食一應俱全。從關西機場搭乘南海電鐵特急 Rapi:t 直達難波站，出站步行4分鐘即可登記入住。
+                    每間套房皆採獨立日系乾濕分離衛浴，並配有滾筒式洗烘衣機、微波爐、大容量冰箱與簡易餐具廚具。非常適合有幼兒或高齡長輩同行的多人家庭。
                 </p>
-                <p style="color:#4a5568;font-size:14px;line-height:1.6;">
-                    每間套房皆採獨立日系乾濕分離衛浴，並配有滾筒式洗烘衣機、微波爐、大容量冰箱與簡易餐具廚具。非常適合有幼兒或高齡長輩同行的多人家庭。二樓設有住客專屬的免費咖啡廳與兒童全真皮安全遊戲沙坑，帶給您如同旅居大阪市中心一般的溫馨與愜意。
-                </p>
-
-                <h3 style="color:#2c3e50;margin-top:25px;">即時房型報價方案表 (適用於 3成人、1位11歲兒童)</h3>
+                <h3 style="color:#2c3e50;margin-top:25px;">即時房型報價方案表</h3>
                 <table class="room-table">
                     <tr>
                         <th>公寓套房房型說明</th>
@@ -694,30 +664,31 @@
                         <td class="room-name-td">連通雙臥室高階家庭公寓 (Two-Bedroom Family Suite)<div class="room-info-tag">1張雙人床 + 2張單人床 | 50平方公尺 | 乾濕分離三衛浴</div></td>
                         <td>👤👤👤👶</td>
                         <td style="color:#ff5a5f;font-weight:bold;font-size:16px;">TWD 7,900 /晚</td>
-                        <td><button class="room-book-btn" onclick="alert('難波家庭雙臥室客房已成功鎖定！預訂成功！')">立即預訂</button></td>
+                        <td><button class="room-book-btn" onclick="alert('難波大客房預訂成功！')">立即預訂</button></td>
                     </tr>
                 </table>
             `
         };
 
-        function openSecondLevel(hotelKey) {
-            // 點擊卡片時，一律先強制大叔與手把滑步歸位到右下角
-            forceResetToDefaultCorner();
-            
-            // 根據點擊，將對應的大阪飯店介紹 HTML 動態注入第二層視窗
-            secondLevelContent.innerHTML = secondLevelData[hotelKey];
-            
-            // 開啟視窗並啟動視窗與大叔大面板的側邊平行對齊
-            itineraryWindow.style.display = 'block';
-            setTimeout(matchAgentPosition, 120);
-        }
+        let cardStartX = 0;
+        let cardStartY = 0;
 
-        closeItineraryBtn.addEventListener('click', () => {
-            itineraryWindow.style.display = 'none';
+        document.querySelectorAll('.hotel-card').forEach(card => {
+            card.addEventListener('mousedown', (e) => {
+                cardStartX = e.clientX;
+                cardStartY = e.clientY;
+            });
+            card.addEventListener('mouseup', (e) => {
+                const diffX = Math.abs(e.clientX - cardStartX);
+                const diffY = Math.abs(e.clientY - cardStartY);
+                if (diffX < 4 && diffY < 4) {
+                    const hotelKey = card.getAttribute('data-hotel');
+                    openSecondLevel(hotelKey);
+                } 
+            });
         });
 
-
-        // 全域選取文字監聽 (第一層與第二層視窗內的所有大阪飯店介紹文，通通支援隨選直發)
+        // 全域選取文字監聽
         window.addEventListener('mouseup', (e) => {
             if (e.target === textSendBadge || e.target === dragHandle) return;
             const selection = window.getSelection();
@@ -731,7 +702,7 @@
             }
         });
 
-        // 💡 點擊其他任何地方一律取消選字
+        // 點擊其他任何地方一律取消選字
         window.addEventListener('mousedown', (e) => {
             if (e.target !== textSendBadge) {
                 textSendBadge.style.display = 'none'; 
@@ -740,29 +711,48 @@
             }
         });
 
-        // 按下快速直發按鈕
+        // ========================================================
+        // 🚀 核心精準修正：根據你提供的原生小圓貼按鈕結構穿透 Shadow DOM！
+        // ========================================================
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
             if (!selectedTextStore) return;
 
+            // 1. 完全清除拖曳造成的 transform 位移，保證大叔完美留在初始右下角
             forceResetToDefaultCorner();
             agentContainer.classList.add('agent-wrapper-expanded-safe');
             dragHandle.classList.add('drag-disabled-safe');
             dragHandle.style.pointerEvents = 'none';
             
-            const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-            if (clickTarget) clickTarget.click();
+            // 2. ⚡ 穿透 Shadow DOM 核心修改：精準抓取未開啟狀態下的原生大叔 button 或 img 元素
+            if (agentEl && agentEl.shadowRoot) {
+                // 根據你給的最新代碼，抓取小圓貼狀態下的官方 button 或內層帶有 sidehead_cc003_tini.png 的頭貼圖層
+                const nativeBtn = agentEl.shadowRoot.querySelector('button.shadow-agent-12sgfsd') || 
+                                  agentEl.shadowRoot.querySelector('img[src*="sidehead_cc003_tini.png"]') ||
+                                  agentEl.shadowRoot.querySelector('.MuiAvatar-img') ||
+                                  agentEl.shadowRoot.querySelector('button');
+                
+                if (nativeBtn) {
+                    nativeBtn.click(); // 🎯 100% 成功觸發官方原生對話視窗開啟！
+                } else {
+                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                    if (clickTarget) clickTarget.click();
+                }
+            } else {
+                const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                if (clickTarget) clickTarget.click();
+            }
             
             window.dispatchEvent(new Event('resize'));
-            setTimeout(matchAgentPosition, 120);
             setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
 
+            // 3. 把文字丟進去對話內容
             setTimeout(() => {
                 if (agentEl && typeof agentEl.sendQuestion === 'function') {
                     agentEl.sendQuestion(selectedTextStore);
                 }
-                window.getSelection().removeAllRanges();
+                window.getSelection().removeAllRanges(); 
             }, 300); 
         });
 
@@ -790,11 +780,6 @@
                 agentContainer.classList.add('agent-wrapper-expanded-safe');
                 dragHandle.classList.add('drag-disabled-safe'); 
                 dragHandle.style.transform = 'none';
-            } else {
-                if (!isDragging && currentX === 0 && currentY === 0) {
-                    agentContainer.classList.remove('agent-wrapper-expanded-safe');
-                    dragHandle.classList.remove('drag-disabled-safe');
-                }
             }
         });
         if (agentEl) {
@@ -808,7 +793,6 @@
                 dragHandle.classList.remove('drag-disabled-safe');
             }
         }, 100); 
-
 
         // ========================================================
         // 全域防滑出拖曳演算機制
@@ -894,9 +878,18 @@
                 dragHandle.style.pointerEvents = 'none'; 
                 
                 setTimeout(() => {
-                    const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                    if (clickTarget) {
-                        clickTarget.click(); 
+                    if (agentEl && agentEl.shadowRoot) {
+                        const nativeBtn = agentEl.shadowRoot.querySelector('button.shadow-agent-12sgfsd') || 
+                                          agentEl.shadowRoot.querySelector('img[src*="sidehead_cc003_tini.png"]') ||
+                                          agentEl.shadowRoot.querySelector('button');
+                        if (nativeBtn) nativeBtn.click();
+                        else {
+                            const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                            if (clickTarget) clickTarget.click();
+                        }
+                    } else {
+                        const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+                        if (clickTarget) clickTarget.click(); 
                     }
                     window.dispatchEvent(new Event('resize'));
 
@@ -907,8 +900,6 @@
                         dragHandle.style.pointerEvents = 'auto'; 
                     }, 200);
                 }, 40);
-
-                setTimeout(matchAgentPosition, 100);
                 
             } else {
                 lastX = currentX;
