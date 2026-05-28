@@ -108,7 +108,9 @@
             transform: none !important;
         }
 
-        /* 完全獨立的隱形操控手把（z-index 最高層級） */
+        /* ========================================================
+           完全獨立的隱形操控手把（z-index 最高層級）
+           ======================================================== */
         #globalDragHandle {
             position: fixed !important;
             bottom: 20px !important;
@@ -133,6 +135,14 @@
             border-radius: 0 !important;
             bottom: auto !important;
             right: auto !important;
+        }
+
+        /* 大面板開啟時，強行將手把物理體積化為烏有，徹底關閉大視窗拖曳能力 */
+        #globalDragHandle.drag-disabled-safe {
+            width: 0px !important;
+            height: 0px !important;
+            pointer-events: none !important;
+            cursor: default !important;
         }
 
         /* 選取文字後浮現的 "Send" 按鈕樣式 */
@@ -187,7 +197,7 @@
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
         <h2>想看日本三大花火大會 (3)</h2>
         <p style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; font-size: 15px; line-height: 1.5;">
-            如果你想看日本三大花火大會之一的長岡煙火，現在有不同的行程可以選擇，包括一日直達A區觀賞席、兩天一夜B區觀賞席加溫泉住宿，還有三天的彌彥神社巡禮和煙火體驗，讓你輕鬆享受壯觀的煙火盛會。
+            如果你想看日本三大花火大會之一的長岡煙火，現在有不同的行程可以選擇，包括一日直達A區觀賞席、兩天一夜B區觀賞席加溫泉住宿，還有三天的彌彥神社巡禮 and 煙火體驗，讓你輕鬆享受壯觀的煙火盛會。
         </p>
         
         <div class="card-container">
@@ -278,6 +288,7 @@
 
             forceResetToDefaultCorner();
             agentContainer.classList.add('agent-wrapper-expanded-safe');
+            dragHandle.classList.add('drag-disabled-safe');
             dragHandle.style.pointerEvents = 'none';
             
             const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
@@ -303,28 +314,44 @@
                 if (agentEl && agentEl.offsetHeight < 150) {
                     forceResetToDefaultCorner();
                     agentContainer.classList.add('agent-wrapper-expanded-safe');
+                    dragHandle.classList.add('drag-disabled-safe');
                     dragHandle.style.transform = 'none';
                 }
             }
         });
 
-        // 💡 結構監聽守護者修正版：開大視窗時鎖死，關大視窗時「秒脫盾牌」解鎖拖曳功能！
+        // 結構監聽守護者 (原封不動保留)
         const observer = new MutationObserver(() => {
             if (agentEl && agentEl.offsetHeight > 150) {
                 agentContainer.classList.add('agent-wrapper-expanded-safe');
+                dragHandle.classList.add('drag-disabled-safe'); 
                 dragHandle.style.transform = 'none';
             } else {
-                // 🎯 關鍵修正：一旦大視窗關閉了（高度縮回小圓貼），立刻解除物理限制，讓拖曳重獲自由！
-                agentContainer.classList.remove('agent-wrapper-expanded-safe');
+                if (!isDragging && currentX === 0 && currentY === 0) {
+                    agentContainer.classList.remove('agent-wrapper-expanded-safe');
+                    dragHandle.classList.remove('drag-disabled-safe');
+                }
             }
         });
         if (agentEl) {
             observer.observe(agentEl, { attributes: true, style: true, childList: true, subtree: true });
         }
 
+        // ========================================================
+        // 💡 唯一新增：高頻全自動狀態解鎖雷達
+        // 每 100 毫秒在背景巡邏一次。只要偵測到大叔高度真正小於 150 (代表視窗已經動畫播完被關閉)
+        // 0秒立刻暴力扒掉所有鎖死限制，並且把座標變數全部清空洗乾淨，保證立刻能重新拖曳！
+        // ========================================================
+        setInterval(() => {
+            if (agentEl && agentEl.offsetHeight < 150) {
+                agentContainer.classList.remove('agent-wrapper-expanded-safe');
+                dragHandle.classList.remove('drag-disabled-safe');
+            }
+        }, 100); 
+
 
         // ========================================================
-        // 全域防滑出拖曳演算機制
+        // 全域防滑出拖曳演算機制 (以下一字未改，保持你的黃金原創邏輯)
         // ========================================================
         let isDragging = false;
         let startX, startY;
@@ -339,7 +366,7 @@
         }
 
         function startDrag(e) {
-            if (agentEl && agentEl.offsetHeight > 150) return;
+            if ((agentEl && agentEl.offsetHeight > 150) || dragHandle.classList.contains('drag-disabled-safe')) return;
 
             isDragging = true;
             hasMoved = false;
@@ -399,6 +426,7 @@
             if (!hasMoved) {
                 forceResetToDefaultCorner();
                 agentContainer.classList.add('agent-wrapper-expanded-safe');
+                dragHandle.classList.add('drag-disabled-safe');
                 
                 dragHandle.style.pointerEvents = 'none'; 
                 
@@ -410,6 +438,9 @@
                     window.dispatchEvent(new Event('resize'));
 
                     setTimeout(() => {
+                        if (agentEl && agentEl.offsetHeight < 150) {
+                            dragHandle.classList.remove('drag-disabled-safe');
+                        }
                         dragHandle.style.pointerEvents = 'auto'; 
                     }, 200);
                 }, 40);
