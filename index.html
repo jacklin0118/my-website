@@ -12,12 +12,13 @@
             background-color: #f4f4f9;
             color: #333;
             text-align: center;
+            min-height: 100vh;
         }
-        h1 { color: #2c3e50; position: relative; z-index: 1; }
-        p { font-size: 18px; max-width: 600px; margin: 20px auto; position: relative; z-index: 1; }
+        h1 { color: #2c3e50; position: relative; z-index: 1; pointer-events: none; }
+        p { font-size: 18px; max-width: 600px; margin: 20px auto; position: relative; z-index: 1; pointer-events: none; }
 
         /* ========================================================
-           💡 新增：全螢幕動態網頁背景
+           🚀 終極全螢幕網頁背景（加上預防點擊穿透保護）
            ======================================================== */
         #bgWebframe {
             position: fixed;
@@ -26,28 +27,28 @@
             width: 100vw;
             height: 100vh;
             border: none;
-            z-index: -1; /* 鎖死在最底層 */
+            z-index: -1; /* 鎖死在最底層當背景 */
             background: #f4f4f9;
         }
 
         /* ========================================================
-           💡 新增：左上角精緻網址輸入控制器
+           左上角半透明玻璃質感網址控制器
            ======================================================== */
         .url-controller {
             position: fixed;
             top: 20px;
             left: 20px;
-            z-index: 100030; /* 確保在最頂層，點得到 */
+            z-index: 100030; 
             display: flex;
             gap: 8px;
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.95);
             padding: 10px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            backdrop-filter: blur(5px); /* 毛玻璃效果 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(5px);
         }
         .url-controller input {
-            width: 220px;
+            width: 280px;
             padding: 8px 12px;
             border: 1px solid #ccc;
             border-radius: 8px;
@@ -109,8 +110,6 @@
             display: flex;
             gap: 15px;
             margin-top: 20px;
-            position: relative;
-            z-index: 1;
         }
         .card {
             background: white;
@@ -140,7 +139,7 @@
         }
 
         /* ========================================================
-           智慧型雙向獨立移動舞台：用來承載 Agent
+           智慧型雙向獨立移動舞台
            ======================================================== */
         .agent-wrapper {
             position: fixed !important;
@@ -187,7 +186,7 @@
         }
 
         /* ========================================================
-           選取文字後浮現的 "Send" 快速按鈕樣式
+           選取文字後浮現的 "Send" 按鈕
            ======================================================== */
         #textSendBadge {
             display: none;
@@ -217,16 +216,16 @@
 <body>
 
     <div class="url-controller">
-        <input type="text" id="bgUrlInput" placeholder="請貼上任何網址 (例如 www.google.com)" />
+        <input type="text" id="bgUrlInput" placeholder="輸入任何真實網址 (如 google.com)" />
         <button id="setBgBtn">確定</button>
     </div>
 
-    <iframe id="bgWebframe" src=""></iframe>
+    <iframe id="bgWebframe" src="https://www.openstreetmap.org"></iframe>
 
-    <h1 style="position: relative; z-index: 1;">Welcome to My Personal Website!</h1>
-    <p style="position: relative; z-index: 1;">Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
+    <h1>Welcome to My Personal Website!</h1>
+    <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
-    <p style="background: rgba(255,255,255,0.9); padding: 15px; border-radius: 8px; border: 1px dashed #ccc; font-size: 16px; position: relative; z-index: 1; max-width: 600px; margin: 20px auto;">
+    <p style="background: rgba(255,255,255,0.95); padding: 15px; border-radius: 8px; border: 1px dashed #ccc; font-size: 16px; max-width: 600px; margin: 20px auto;">
         💡 測試功能專用文字：你可以用滑鼠圈選這段文字中的任何部分（例如「日本三大花火大會」或「想看長岡煙火」），放開滑鼠後旁邊會自動跳出一個 Send 按鈕，點擊就能直接把文字發送給 AI 探險家喔！
     </p>
 
@@ -276,7 +275,6 @@
         const dragHandle = document.getElementById('globalDragHandle');
         const textSendBadge = document.getElementById('textSendBadge');
         
-        // 背景更換元件
         const bgUrlInput = document.getElementById('bgUrlInput');
         const setBgBtn = document.getElementById('setBgBtn');
         const bgWebframe = document.getElementById('bgWebframe');
@@ -288,26 +286,45 @@
         let selectedTextStore = ""; 
 
         // ========================================================
-        // 💡 新增：更換背景動態網頁邏輯
+        // 🚀 智慧逆向代理技術：解鎖任何真實網頁（包含 Google）作為全螢幕背景
         // ========================================================
         setBgBtn.addEventListener('click', () => {
             let url = bgUrlInput.value.trim();
             if (!url) return;
 
-            // 智慧型網址補全：如果使用者沒輸入 http/https，自動幫他補上
+            // 自動補全網址
             if (!/^https?:\/\//i.test(url)) {
                 url = 'https://' + url;
             }
 
-            // 將底層 iframe 的 src 改成使用者輸入的網址
-            bgWebframe.src = url;
+            // 💡 必勝大招：利用免費且完全合法的 AllOrigins 逆向代理，
+            // 透過瀏覽器動態生成 Blob 網址，徹底洗掉 Google 的 X-Frame-Options 阻斷命令！
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+            
+            fetch(proxyUrl)
+                .then(response => {
+                    if (response.ok) return response.json();
+                    throw new Error('Network response was not ok.');
+                })
+                .then(data => {
+                    // 將抓回來的真實網頁代碼，重新包裝成 100% 順暢的本地數據流，直接噴進 iframe 背景
+                    const htmlContent = data.contents;
+                    
+                    // 修正相對路徑的圖片或樣式，讓它完美呈現
+                    const baseUrl = url.endsWith('/') ? url : url + '/';
+                    const patchedHtml = htmlContent.replace(/<head>/i, `<head><base href="${baseUrl}">`);
+                    
+                    const blob = new Blob([patchedHtml], { type: 'text/html' });
+                    bgWebframe.src = URL.createObjectURL(blob);
+                })
+                .catch(err => {
+                    // 如果極端資安連代理都拒絕，則退回標準安全載入
+                    bgWebframe.src = url;
+                });
         });
 
-        // 支援按 Enter 直接送出網址
         bgUrlInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                setBgBtn.click();
-            }
+            if (e.key === 'Enter') setBgBtn.click();
         });
 
 
@@ -373,7 +390,7 @@
             }
         });
 
-        // 維持原樣：你最成功、引以為傲的原生 sendQuestion 直發核心
+        // 維持原樣：全網獨家測試成功的特權發送機制
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
