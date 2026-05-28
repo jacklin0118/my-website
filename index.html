@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trip.com 模擬旅遊探險舞台</title>
+    <title>Trip.com 大阪心齋橋訂房中心</title>
     <style>
         /* ========================================================
-           旅遊網站原生 UI 樣式系統 (精準致敬 Trip.com 官方配色)
+           旅遊網站原生 UI 樣式系統 (精準致敬 Trip.com 官方配色與細節)
            ======================================================== */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -57,7 +57,7 @@
 
         /* 主視覺大圖與查價搜尋核心面板 */
         .hero-section {
-            background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.3)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600') no-repeat center center/cover;
+            background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.3)), url('https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1600') no-repeat center center/cover;
             height: 280px;
             position: relative;
             display: flex;
@@ -152,6 +152,11 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.08);
         }
+        .hotel-clickable-trigger {
+            display: flex;
+            width: 100%;
+            cursor: pointer;
+        }
         .hotel-img {
             width: 280px;
             height: 220px;
@@ -170,10 +175,14 @@
             align-items: flex-start;
         }
         .hotel-name {
-            font-size: 18px;
+            font-size: 19px;
             font-weight: bold;
             color: #1a2b3c;
             margin: 0 0 6px 0;
+            transition: color 0.2s;
+        }
+        .hotel-card:hover .hotel-name {
+            color: #287dfa;
         }
         .hotel-stars {
             color: #ffb800;
@@ -256,7 +265,7 @@
         }
 
         /* ========================================================
-           💥 飯店詳視窗 (第二層詳細資料彈出視窗)
+           💥 飯店詳細介紹視窗 (第二層詳細資料彈出視窗)
            ======================================================== */
         .itinerary-popup {
             display: none; 
@@ -272,7 +281,7 @@
             border: 1px solid #eef2f5;
             
             width: 60vw;
-            max-width: 900px;
+            max-width: 950px;
             min-width: 500px;
             
             animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
@@ -296,11 +305,38 @@
             color: #333;
         }
 
-        /* 第二層內部精美房型表格 */
+        /* 第二層內部飯店規格與介紹樣式 */
+        .detail-highlights {
+            display: flex;
+            gap: 12px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .highlight-tag {
+            background-color: #f0f6ff;
+            color: #287dfa;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .detail-gallery {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            height: 180px;
+        }
+        .detail-gallery img {
+            flex: 1;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
         .room-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 25px;
         }
         .room-table th {
             background-color: #f7f9fc;
@@ -329,10 +365,11 @@
             background-color: #ff9000;
             color: white;
             border: none;
-            padding: 6px 16px;
+            padding: 8px 18px;
             font-weight: bold;
             border-radius: 6px;
             cursor: pointer;
+            font-size: 13px;
         }
 
         /* ========================================================
@@ -420,101 +457,105 @@
 <body>
 
     <header class="trip-header">
-        <div class="trip-logo" onclick="window.location.reload()">💥 Trip.com 探險舞台</div>
+        <div class="trip-logo" onclick="window.location.reload()">💥 Trip.com 大阪訂房中心</div>
         <ul class="trip-nav">
-            <li class="active">酒店訂房</li>
-            <li>機票比價</li>
-            <li>火車票</li>
-            <li>旅遊攻略</li>
-            <li>機＋酒特惠</li> </ul>
-        <div style="font-size: 14px; font-weight: bold;">歡迎體驗第二層深度劃詞</div>
+            <li class="active">酒店住宿</li>
+            <li>機票機位</li>
+            <li>火車票高鐵</li>
+            <li>當地體驗行程</li>
+            <li>機＋酒自由行</li>
+        </ul>
+        <div style="font-size: 14px; font-weight: bold;">大阪心齋橋專頁</div>
     </header>
 
     <section class="hero-section">
         <div class="search-container">
             <div class="search-item">
-                <label>目的地</label>
-                <input type="text" id="destInput" value="東京, 日本" placeholder="城市、景點或酒店..." />
+                <label>目的地 / 酒店名稱</label>
+                <input type="text" id="destInput" value="大阪, 日本 (心齋橋地鐵站)" />
             </div>
             <div class="search-item">
                 <label>入住日期</label>
-                <input type="date" id="checkInInput" value="2026-07-15" />
+                <input type="date" id="checkInInput" value="2026-05-28" />
             </div>
             <div class="search-item">
                 <label>退房日期</label>
-                <input type="date" id="checkOutInput" value="2026-07-20" />
+                <input type="date" id="checkOutInput" value="2026-05-29" />
             </div>
             <div class="search-item">
-                <label>人數與客房</label>
+                <label>旅客及客房（三人與兒童）</label>
                 <select>
+                    <option>1 間客房, 3 位成人, 1 位兒童(11歲)</option>
                     <option>1 間客房, 2 位成人</option>
-                    <option>1 間客房, 1 位成人</option>
-                    <option>2 間客房, 4 位成人</option>
                 </select>
             </div>
-            <button class="search-btn" onclick="alert('訂房系統動態查價成功！已過濾目前空房狀況。')">搜尋酒店</button>
+            <button class="search-btn" onclick="alert('Trip.com 系統查價成功！以下為心齋橋地區即時空房與最新台幣含稅報價。')">搜尋</button>
         </div>
     </section>
 
     <main class="main-content">
-        <div class="section-title">🔥 熱門查價結果推薦 (點擊「查看詳情」可點開第二層網頁)</div>
+        <div class="section-title">🔥 心齋橋周邊推薦熱門酒店 (點擊酒店圖片或名稱直接顯示詳細介紹)</div>
         
         <div class="hotel-list">
-            <div class="hotel-card">
-                <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500" class="hotel-img" alt="飯店">
-                <div class="hotel-info">
-                    <div class="hotel-header">
-                        <div>
-                            <h3 class="hotel-name">東京精選豪華希爾頓酒店 (Hilton Tokyo)</h3>
-                            <span class="hotel-stars">★★★★★</span>
-                        </div>
-                        <span class="hotel-badge">免費取消</span>
-                    </div>
-                    <p class="hotel-desc">
-                        位於新宿中心地帶，直通地鐵站。步行即可達新宿中央公園。房間內可飽覽東京鐵塔與絢麗夜景。提供頂級日式溫泉大浴場、免費高速 Wi-Fi 以及星級主廚早午餐，是家庭旅遊與商務出差的頂級奢華首選。
-                    </p>
-                    <div class="hotel-footer">
-                        <div class="hotel-rating-box">
-                            <span class="rating-score">4.8 / 5</span>
-                            <span class="rating-text">傑出 (1,240條真實評價)</span>
-                        </div>
-                        <div class="hotel-price-action">
-                            <div class="hotel-price-box">
-                                <div class="price-currency">每晚每間</div>
-                                <div class="price-amount">TWD 6,800</div>
-                                <div class="price-tax">含稅金及服務費</div>
+            <div class="hotel-card" onclick="openSecondLevel('shinsaibashi_grand')">
+                <div class="hotel-clickable-trigger">
+                    <img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?w=500" class="hotel-img" alt="大阪飯店">
+                    <div class="hotel-info">
+                        <div class="hotel-header">
+                            <div>
+                                <h3 class="hotel-name">大阪心齋橋大飯店 (Shinsaibashi Grand Hotel Osaka)</h3>
+                                <span class="hotel-stars">★★★★</span>
                             </div>
-                            <button class="view-detail-btn" onclick="openSecondLevel('hilton')">查看詳情</button>
+                            <span class="hotel-badge">今日特惠・免費取消</span>
+                        </div>
+                        <p class="hotel-desc">
+                            【2024全新落成奢華旅館】坐落於大阪黃金商圈心齋橋中心點！步行至地鐵心齋橋站僅需3分鐘。緊鄰道頓堀跑跑人與熱門的黑門市場。館內主打現代日式奢華風，並設有住客專屬的膠原蛋白露天溫泉與日式頂級桑拿浴場，是家庭與多人出遊的大阪住宿首選。
+                        </p>
+                        <div class="hotel-footer">
+                            <div class="hotel-rating-box">
+                                <span class="rating-score">4.7 / 5</span>
+                                <span class="rating-text">卓越 (2,480條來自台灣住客的真實評價)</span>
+                            </div>
+                            <div class="hotel-price-action">
+                                <div class="hotel-price-box">
+                                    <div class="price-currency">每晚/含稅總價</div>
+                                    <div class="price-amount">TWD 5,200</div>
+                                    <div class="price-tax">含3成人1兒童即時報價</div>
+                                </div>
+                                <button class="view-detail-btn">查看介紹</button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="hotel-card">
-                <img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=500" class="hotel-img" alt="飯店">
-                <div class="hotel-info">
-                    <div class="hotel-header">
-                        <div>
-                            <h3 class="hotel-name">京都傳統町家溫泉旅館 (Kyoto Onsen Ryokan)</h3>
-                            <span class="hotel-stars">★★★★</span>
-                        </div>
-                        <span class="hotel-badge">附精緻懷石早餐</span>
-                    </div>
-                    <p class="hotel-desc">
-                        本溫泉旅館擁有百年歷史，鎔鑄古風。完美保留日式塌塌米庭園景致。館內提供天然白絹無色溫泉大浴場，晚餐可享用當季嚴選黑毛和牛懷石料理。緊鄰古色古香的巡禮線路，讓您深度體驗京都之美。
-                    </p>
-                    <div class="hotel-footer">
-                        <div class="hotel-rating-box">
-                            <span class="rating-score">4.6 / 5</span>
-                            <span class="rating-text">極好 (890條真實評價)</span>
-                        </div>
-                        <div class="hotel-price-action">
-                            <div class="hotel-price-box">
-                                <div class="price-currency">每晚每間</div>
-                                <div class="price-amount">TWD 8,200</div>
-                                <div class="price-tax">不含溫泉稅</div>
+            <div class="hotel-card" onclick="openSecondLevel('namba_cross')">
+                <div class="hotel-clickable-trigger">
+                    <img src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500" class="hotel-img" alt="難波飯店">
+                    <div class="hotel-info">
+                        <div class="hotel-header">
+                            <div>
+                                <h3 class="hotel-name">難波十字路口星級頂級公寓 (Namba Cross Hotel & Suites)</h3>
+                                <span class="hotel-stars">★★★★★</span>
                             </div>
-                            <button class="view-detail-btn" onclick="openSecondLevel('ryokan')">查看詳情</button>
+                            <span class="hotel-badge">含精緻和洋式自助早餐</span>
+                        </div>
+                        <p class="hotel-desc">
+                            【Trip.com 高分極薦】超大坪數公寓式設計，客房皆備有獨立微波爐與簡易小廚房。距離難波車站步行僅4分鐘，一班車直達關西機場。步行穿過戎橋筋商店街即達心齋橋，附近藥妝店、居酒屋林立，非常適合帶小孩與長輩的深度慢活家庭旅行。
+                        </p>
+                        <div class="hotel-footer">
+                            <div class="hotel-rating-box">
+                                <span class="rating-score">4.9 / 5</span>
+                                <span class="rating-text">完美 (1,820條真實評價)</span>
+                            </div>
+                            <div class="hotel-price-action">
+                                <div class="hotel-price-box">
+                                    <div class="price-currency">每晚/含稅總價</div>
+                                    <div class="price-amount">TWD 7,900</div>
+                                    <div class="price-tax">含加床及幼兒免費方案</div>
+                                </div>
+                                <button class="view-detail-btn">查看介紹</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -534,7 +575,6 @@
     <div id="globalDragHandle"></div>
 
     <button id="textSendBadge">🚀 Send to AI</button>
-
 
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
@@ -557,7 +597,7 @@
         let lastY = 0;
         let selectedTextStore = ""; 
 
-        // 智慧型第二層視窗平行對齊演算法 (完美的版面並列)
+        // 智慧型第二層視窗平行對齊演算法 (高度自適應螢幕，完美並列)
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
             const gapX = 15;
@@ -571,73 +611,103 @@
         }
 
         // ========================================================
-        // 💡 核心功能：動態生成並點開第二層網頁資料
+        // 💡 深度定制：參考真實連結封裝的大阪心齋橋飯店第二層介紹資料
         // ========================================================
         const secondLevelData = {
-            hilton: `
-                <h2 style="color:#1a2b3c;margin-top:0;">東京精選豪華希爾頓酒店 - 房型查價詳情</h2>
-                <p style="color:#666;font-size:14px;">入住日期：2026-07-15 ～ 2026-07-20（5晚）</p>
-                <div style="background:#f8f9fa;padding:12px;border-radius:8px;font-size:13px;color:#555;margin-bottom:15px;">
-                    💡 <b>深度探險提示：</b>您可以自由圈選下方表格中的任何細節文字（例如「高級大床房」或「含雙人精緻自助早午餐」），同樣會跳出發送按鈕喔！
+            shinsaibashi_grand: `
+                <h2 style="color:#1a2b3c;margin-top:0;font-size:22px;">大阪心齋橋大飯店 (Shinsaibashi Grand Hotel Osaka)</h2>
+                <div class="detail-highlights">
+                    <span class="highlight-tag">📍 心齋橋站步行 3 分鐘</span>
+                    <span class="highlight-tag">♨️ 天然白絹天然溫泉大浴場</span>
+                    <span class="highlight-tag">🛍️ 緊鄰道頓堀商圈</span>
+                    <span class="highlight-tag">👶 支援 11 歲兒童免費加床</span>
                 </div>
+                
+                <div class="detail-gallery">
+                    <img src="https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=400" alt="客房">
+                    <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400" alt="溫泉">
+                    <img src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400" alt="設施">
+                </div>
+
+                <h3 style="color:#2c3e50;margin-top:20px;border-left:4px solid #287dfa;padding-left:10px;">酒店官方詳細介紹</h3>
+                <p style="color:#4a5568;font-size:14px;line-height:1.6;">
+                    歡迎蒞臨大阪最繁華的核心地帶！本酒店於2024年迎來全面升級落成，專為前來關西地區深度旅遊的跨國旅客設計。從飯店大廳出發，僅需步行3分鐘即可抵達地鐵御堂筋線「心齋橋站」，無論前往梅田樞紐、大阪城公園，或是搭車直達京都、奈良都極為便利。
+                </p>
+                <p style="color:#4a5568;font-size:14px;line-height:1.6;">
+                    飯店頂樓特別斥資打造了「白絹露天溫泉大浴場」，引進頂級膠原蛋白奈米微氣泡溫泉，能徹底舒緩您一日逛街購物後的疲憊。此外，飯店一樓餐廳每日早晨提供由星級主廚親自操刀的日式傳統黑毛和牛定食與精緻和洋式自助早午餐，是您在大阪探險時不可錯過的味覺盛宴。
+                </p>
+
+                <h3 style="color:#2c3e50;margin-top:25px;">即時房型報價方案表 (適用於 3成人、1位11歲兒童)</h3>
                 <table class="room-table">
                     <tr>
-                        <th>房型說明</th>
-                        <th>旅客人數</th>
-                        <th>今日房價</th>
-                        <th>預訂狀態</th>
+                        <th>房型與規格說明</th>
+                        <th>入住人數</th>
+                        <th>每晚含稅房價</th>
+                        <th>Trip.com 特惠預訂</th>
                     </tr>
                     <tr>
-                        <td class="room-name-td">高級大床房 (Superior King Room)<div class="room-info-tag">1張特大床 | 35平方公尺 | 禁菸</div></td>
-                        <td>👤👤</td>
-                        <td style="color:#ff5a5f;font-weight:bold;">TWD 6,800 /晚</td>
-                        <td><button class="room-book-btn" onclick="alert('房間成功加入購物車！')">預訂</button></td>
+                        <td class="room-name-td">豪華家庭三人大客房 (Deluxe Triple Room)<div class="room-info-tag">3張標準單人床 + 1張兒童加床 | 42平方公尺 | 市景禁菸房</div></td>
+                        <td>👤👤👤👶</td>
+                        <td style="color:#ff5a5f;font-weight:bold;font-size:16px;">TWD 5,200 /晚</td>
+                        <td><button class="room-book-btn" onclick="alert('大阪精選客房預訂成功！已為您鎖定 3成人與1兒童名額。')">立即預訂</button></td>
                     </tr>
                     <tr>
-                        <td class="room-name-td">豪華雙床房 (Deluxe Twin Resort)<div class="room-info-tag">2張單人床 | 40平方公尺 | 含雙人精緻自助早午餐</div></td>
-                        <td>👤👤</td>
-                        <td style="color:#ff5a5f;font-weight:bold;">TWD 7,500 /晚</td>
-                        <td><button class="room-book-btn" onclick="alert('房間成功加入購物車！')">預訂</button></td>
+                        <td class="room-name-td">行政尊榮溫泉套房 (Executive Suite with Spa)<div class="room-info-tag">2張特大雙人床 | 55平方公尺 | 附私人半露天風呂 | 含四人份懷石早晚餐</div></td>
+                        <td>👤👤👤👶</td>
+                        <td style="color:#ff5a5f;font-weight:bold;font-size:16px;">TWD 9,800 /晚</td>
+                        <td><button class="room-book-btn" onclick="alert('行政尊榮套房成功加入購物車！')">立即預訂</button></td>
                     </tr>
                 </table>
             `,
-            ryokan: `
-                <h2 style="color:#1a2b3c;margin-top:0;">京都傳統町家溫泉旅館 - 房型與方案選擇</h2>
-                <p style="color:#666;font-size:14px;">入住日期：2026-07-15 ～ 2026-07-20（5晚）</p>
-                <div style="background:#f8f9fa;padding:12px;border-radius:8px;font-size:13px;color:#555;margin-bottom:15px;">
-                    💡 <b>深度探險提示：</b>本網頁支援多層級同步劃詞，圈選文字直接一槍直發！
+            namba_cross: `
+                <h2 style="color:#1a2b3c;margin-top:0;font-size:22px;">難波十字路口星級頂級公寓 (Namba Cross Hotel & Suites)</h2>
+                <div class="detail-highlights">
+                    <span class="highlight-tag">📍 難波車站步行 4 分鐘</span>
+                    <span class="highlight-tag">🍳 房內附設微波爐與獨立小廚房</span>
+                    <span class="highlight-tag">🌐 免費高速 Wi-Fi 6 全館覆蓋</span>
+                    <span class="highlight-tag">🍱 免費精緻和洋式自助早餐</span>
                 </div>
+                
+                <div class="detail-gallery">
+                    <img src="https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400" alt="客房">
+                    <img src="https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400" alt="廚房">
+                    <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400" alt="大廳">
+                </div>
+
+                <h3 style="color:#2c3e50;margin-top:20px;border-left:4px solid #287dfa;padding-left:10px;">公寓式酒店深度介紹</h3>
+                <p style="color:#4a5568;font-size:14px;line-height:1.6;">
+                    專為現代家庭旅遊打造的旗艦級公寓式酒店。座落於難波市中心黃金路口，下樓即可無縫匯入戎橋筋商店街，藥妝、電器、排隊美食一應俱全。從關西機場搭乘南海電鐵特急 Rapi:t 直達難波站，出站步行4分鐘即可登記入住。
+                </p>
+                <p style="color:#4a5568;font-size:14px;line-height:1.6;">
+                    每間套房皆採獨立日系乾濕分離衛浴，並配有滾筒式洗烘衣機、微波爐、大容量冰箱與簡易餐具廚具。非常適合有幼兒或高齡長輩同行的多人家庭。二樓設有住客專屬的免費咖啡廳與兒童全真皮安全遊戲沙坑，帶給您如同旅居大阪市中心一般的溫馨與愜意。
+                </p>
+
+                <h3 style="color:#2c3e50;margin-top:25px;">即時房型報價方案表 (適用於 3成人、1位11歲兒童)</h3>
                 <table class="room-table">
                     <tr>
-                        <th>方案與榻榻米規格</th>
-                        <th>旅客人數</th>
-                        <th>今日房價</th>
-                        <th>預訂狀態</th>
+                        <th>公寓套房房型說明</th>
+                        <th>入住人數</th>
+                        <th>每晚含稅房價</th>
+                        <th>Trip.com 特惠預訂</th>
                     </tr>
                     <tr>
-                        <td class="room-name-td">標準日式客房 (Standard Washitsu)<div class="room-info-tag">8疊塌塌米 | 庭園景觀 | 純住宿方案</div></td>
-                        <td>👤👤</td>
-                        <td style="color:#ff5a5f;font-weight:bold;">TWD 8,200 /晚</td>
-                        <td><button class="room-book-btn" onclick="alert('傳統町家房間成功加入購物車！')">預訂</button></td>
-                    </tr>
-                    <tr>
-                        <td class="room-name-td">嚴選溫泉半露天風呂天客房<div class="room-info-tag">12疊塌塌米 | 私人半露天風呂 | 含一泊二食頂級黑毛和牛懷石料理</div></td>
-                        <td>👤👤👤</td>
-                        <td style="color:#ff5a5f;font-weight:bold;">TWD 13,400 /晚</td>
-                        <td><button class="room-book-btn" onclick="alert('頂級溫泉客房成功加入購物車！')">預訂</button></td>
+                        <td class="room-name-td">連通雙臥室高階家庭公寓 (Two-Bedroom Family Suite)<div class="room-info-tag">1張雙人床 + 2張單人床 | 50平方公尺 | 乾濕分離三衛浴</div></td>
+                        <td>👤👤👤👶</td>
+                        <td style="color:#ff5a5f;font-weight:bold;font-size:16px;">TWD 7,900 /晚</td>
+                        <td><button class="room-book-btn" onclick="alert('難波家庭雙臥室客房已成功鎖定！預訂成功！')">立即預訂</button></td>
                     </tr>
                 </table>
             `
         };
 
         function openSecondLevel(hotelKey) {
-            // 1. 先強制作業一律先回歸右下角初始原點
+            // 點擊卡片時，一律先強制大叔與手把滑步歸位到右下角
             forceResetToDefaultCorner();
             
-            // 2. 注入對應飯店的第二層精美 HTML 結構
+            // 根據點擊，將對應的大阪飯店介紹 HTML 動態注入第二層視窗
             secondLevelContent.innerHTML = secondLevelData[hotelKey];
             
-            // 3. 展現第二層視窗並對齊
+            // 開啟視窗並啟動視窗與大叔大面板的側邊平行對齊
             itineraryWindow.style.display = 'block';
             setTimeout(matchAgentPosition, 120);
         }
@@ -647,7 +717,7 @@
         });
 
 
-        // 全域選取文字監聽 (第一層與第二層視窗內通通 100% 完美支援)
+        // 全域選取文字監聽 (第一層與第二層視窗內的所有大阪飯店介紹文，通通支援隨選直發)
         window.addEventListener('mouseup', (e) => {
             if (e.target === textSendBadge || e.target === dragHandle) return;
             const selection = window.getSelection();
@@ -661,7 +731,7 @@
             }
         });
 
-        // 點擊其他任何地方一律取消選字
+        // 💡 點擊其他任何地方一律取消選字
         window.addEventListener('mousedown', (e) => {
             if (e.target !== textSendBadge) {
                 textSendBadge.style.display = 'none'; 
@@ -720,6 +790,11 @@
                 agentContainer.classList.add('agent-wrapper-expanded-safe');
                 dragHandle.classList.add('drag-disabled-safe'); 
                 dragHandle.style.transform = 'none';
+            } else {
+                if (!isDragging && currentX === 0 && currentY === 0) {
+                    agentContainer.classList.remove('agent-wrapper-expanded-safe');
+                    dragHandle.classList.remove('drag-disabled-safe');
+                }
             }
         });
         if (agentEl) {
