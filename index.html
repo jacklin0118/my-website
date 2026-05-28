@@ -104,7 +104,7 @@
         }
 
         /* ========================================================
-           💥 核心修正：將手把提到全瀏覽器最高階層，強行壓死 3D Canvas
+           完全獨立的隱形操控手把（z-index 極限霸道層級）
            ======================================================== */
         #globalDragHandle {
             position: fixed !important;
@@ -116,7 +116,7 @@
             background: rgba(0, 0, 0, 0) !important;
             border: none !important;
             cursor: move !important;
-            z-index: 2147483647 !important; /* 👈 瀏覽器圖層終極極限值，誰都擋不住它 */
+            z-index: 2147483647 !important; 
             touch-action: none !important;
             will-change: transform;
         }
@@ -207,7 +207,7 @@
         </div>
     </div>
 
-    <script {__rule__:"STRICT_COMPLETION"}>
+    <script>
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
         const agentEl = document.getElementById('perxonaAgent');
@@ -221,23 +221,34 @@
         let lastY = 0;
         let selectedTextStore = ""; 
 
+        // ========================================================
+        // 智慧型行程視窗平行對齊演算法
+        // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
+
             const gapX = 15;
             const expandedAgentWidth = 400; 
+            
             itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
             itineraryWindow.style.left = 'auto';
+
             const desiredTop = 80;  
             const desiredHeight = window.innerHeight - desiredTop - 120; 
+
             itineraryWindow.style.top = desiredTop + 'px';
             itineraryWindow.style.height = desiredHeight + 'px';
         }
 
+        // ========================================================
+        // 方案 B 全域監聽
+        // ========================================================
         window.addEventListener('click', (event) => {
             const path = event.composedPath();
             const hasClickedCucumber = path.some(element => {
                 return element.textContent && element.textContent.trim() === '當季小黃瓜照片';
             });
+
             if (hasClickedCucumber) {
                 forceResetToDefaultCorner();
                 itineraryWindow.style.display = 'block';
@@ -252,10 +263,16 @@
 
         window.addEventListener('resize', matchAgentPosition);
 
+
+        // ========================================================
+        // 全域滑鼠選取文字監聽
+        // ========================================================
         window.addEventListener('mouseup', (e) => {
             if (e.target === textSendBadge || e.target === dragHandle) return;
+
             const selection = window.getSelection();
             const selectedText = selection.toString().trim();
+
             if (selectedText.length > 0 && !isDragging) {
                 selectedTextStore = selectedText; 
                 textSendBadge.style.left = `${e.clientX - 40}px`;
@@ -266,19 +283,26 @@
             }
         });
 
+        // 點擊直發按鈕時，無論拉到哪裡，強制作業一律先回歸右下角
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
+
             if (!selectedTextStore) return;
+
             if (agentEl && agentEl.offsetHeight < 150) {
                 forceResetToDefaultCorner();
                 dragHandle.style.pointerEvents = 'none';
+                
                 const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
                 if (clickTarget) clickTarget.click();
+                
                 window.dispatchEvent(new Event('resize'));
                 setTimeout(matchAgentPosition, 120);
+                
                 setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
             }
+
             setTimeout(() => {
                 if (agentEl && typeof agentEl.sendQuestion === 'function') {
                     agentEl.sendQuestion(selectedTextStore);
@@ -286,6 +310,10 @@
             }, 300); 
         });
 
+
+        // ========================================================
+        // 全域防滑出拖曳演算機制
+        // ========================================================
         let isDragging = false;
         let startX, startY;
         let hasMoved = false;
@@ -300,14 +328,19 @@
 
         function startDrag(e) {
             if (agentEl && agentEl.offsetHeight > 150) return;
+
             isDragging = true;
             hasMoved = false;
+
             const clientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
             const clientY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
+            
             startX = clientX;
             startY = clientY;
+
             agentContainer.style.transition = 'none';
             dragHandle.style.transition = 'none';
+
             dragHandle.classList.add('dragging-active');
             
             const transformStyle = `translate(${lastX}px, ${lastY}px)`;
@@ -320,21 +353,28 @@
 
         function doDrag(e) {
             if (!isDragging) return;
+            
             const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
             const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
+
             const deltaX = clientX - startX;
             const deltaY = clientY - startY;
+
             if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
                 hasMoved = true;
             }
+
             currentX = lastX + deltaX;
             currentY = lastY + deltaY;
+
             const initialLeftBound = window.innerWidth - 105;
             const initialTopBound = window.innerHeight - 105;
+
             if (initialLeftBound + currentX < 0) currentX = -initialLeftBound;
             if (initialLeftBound + currentX > window.innerWidth - 85) currentX = window.innerWidth - 85 - initialLeftBound;
             if (initialTopBound + currentY < 0) currentY = -initialTopBound;
             if (initialTopBound + currentY > window.innerHeight - 85) currentY = window.innerHeight - 85 - initialTopBound;
+
             const transformStyle = `translate(${currentX}px, ${currentY}px)`;
             agentContainer.style.transform = transformStyle;
             dragHandle.style.transform = transformStyle;
@@ -343,22 +383,36 @@
         function endDrag() {
             if (!isDragging) return;
             isDragging = false;
+
             dragHandle.classList.remove('dragging-active');
+
             if (!hasMoved) {
+                // 💡 智慧點擊修正：只要點擊頭貼任何地方，一律先「瞬間強制歸位」到右下角
                 forceResetToDefaultCorner();
+                
+                // 暫時鎖死手把事件，防止連擊引發座標跳動
                 dragHandle.style.pointerEvents = 'none'; 
+                
+                // 歸位完畢後，精準朝右下角原生小圓貼的原生點發射 Click，100% 呼叫 Perxona 展開大視窗
                 setTimeout(() => {
                     const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                    if (clickTarget) clickTarget.click(); 
+                    if (clickTarget) {
+                        clickTarget.click(); 
+                    }
+                    
                     window.dispatchEvent(new Event('resize'));
+
                     setTimeout(() => {
                         dragHandle.style.pointerEvents = 'auto'; 
                     }, 200);
                 }, 80);
+
                 setTimeout(matchAgentPosition, 120);
+                
             } else {
                 lastX = currentX;
                 lastY = currentY;
+                
                 const finalStyle = `translate(${lastX}px, ${lastY}px)`;
                 agentContainer.style.transform = finalStyle;
                 dragHandle.style.transform = finalStyle;
