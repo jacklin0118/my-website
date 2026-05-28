@@ -1,87 +1,338 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Personal Website</title>
+    <title>Trip.com 模擬旅遊探險舞台</title>
     <style>
+        /* ========================================================
+           旅遊網站原生 UI 樣式系統 (精準致敬 Trip.com 官方配色)
+           ======================================================== */
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 40px;
-            background-color: #f4f4f9;
+            padding: 0;
+            background-color: #f5f7fa;
             color: #333;
-            text-align: center;
+            overflow-x: hidden;
         }
-        h1 { color: #2c3e50; }
-        p { font-size: 18px; max-width: 600px; margin: 20px auto; }
+
+        /* 頂部藍色官方導覽列 */
+        .trip-header {
+            background-color: #287dfa;
+            color: white;
+            padding: 0 40px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .trip-logo {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+        }
+        .trip-nav {
+            display: flex;
+            gap: 24px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .trip-nav li {
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+            padding: 18px 0;
+            border-bottom: 3px solid transparent;
+        }
+        .trip-nav li:hover, .trip-nav li.active {
+            opacity: 1;
+            border-bottom: 3px solid white;
+        }
+
+        /* 主視覺大圖與查價搜尋核心面板 */
+        .hero-section {
+            background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.3)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600') no-repeat center center/cover;
+            height: 280px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 40px;
+        }
+
+        .search-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            width: 85vw;
+            max-width: 1100px;
+            padding: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+        .search-item {
+            flex: 1;
+            min-width: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .search-item label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #8c9aa8;
+            text-transform: uppercase;
+        }
+        .search-item input, .search-item select {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            background-color: #fcfcfd;
+        }
+        .search-item input:focus {
+            border-color: #287dfa;
+        }
+        .search-btn {
+            background-color: #ff5a5f;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .search-btn:hover {
+            background-color: #e0484d;
+        }
+
+        /* 訂房查價結果清單舞台 */
+        .main-content {
+            width: 85vw;
+            max-width: 1100px;
+            margin: 40px auto 100px auto;
+            text-align: left;
+        }
+        .section-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hotel-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .hotel-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #eef2f5;
+        }
+        .hotel-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+        .hotel-img {
+            width: 280px;
+            height: 220px;
+            object-fit: cover;
+        }
+        .hotel-info {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .hotel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .hotel-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a2b3c;
+            margin: 0 0 6px 0;
+        }
+        .hotel-stars {
+            color: #ffb800;
+            font-size: 14px;
+        }
+        .hotel-badge {
+            background-color: #e8f3ff;
+            color: #0066cc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .hotel-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+            margin: 10px 0;
+        }
+        .hotel-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-top: 1px dashed #edeef0;
+            padding-top: 12px;
+        }
+        .hotel-rating-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .rating-score {
+            background-color: #287dfa;
+            color: white;
+            font-weight: bold;
+            padding: 4px 6px;
+            border-radius: 6px 6px 6px 0;
+            font-size: 14px;
+        }
+        .rating-text {
+            font-size: 13px;
+            font-weight: bold;
+            color: #287dfa;
+        }
+        .hotel-price-action {
+            display: flex;
+            align-items: flex-end;
+            gap: 16px;
+        }
+        .hotel-price-box {
+            text-align: right;
+        }
+        .price-currency {
+            font-size: 12px;
+            color: #666;
+        }
+        .price-amount {
+            font-size: 26px;
+            font-weight: bold;
+            color: #ff5a5f;
+        }
+        .price-tax {
+            font-size: 11px;
+            color: #999;
+        }
+        .view-detail-btn {
+            background-color: #287dfa;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 4px;
+        }
+        .view-detail-btn:hover {
+            background-color: #1a66d1;
+        }
 
         /* ========================================================
-           行程卡片視窗 (固定對齊右下角原生預設面板的左側)
+           💥 飯店詳視窗 (第二層詳細資料彈出視窗)
            ======================================================== */
         .itinerary-popup {
             display: none; 
             position: fixed;
-            background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.25);
             z-index: 99997;      
             padding: 30px;
             box-sizing: border-box;
             text-align: left;
             overflow-y: auto;
+            border: 1px solid #eef2f5;
             
-            width: 55vw;
-            max-width: 820px;
-            min-width: 450px;
+            width: 60vw;
+            max-width: 900px;
+            min-width: 500px;
             
-            animation: fadeIn 0.3s ease-out; 
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         .close-btn {
             position: absolute;
-            top: 15px;
+            top: 20px;
             right: 25px;
             font-size: 28px;
             cursor: pointer;
-            color: #555;
+            color: #999;
+            transition: color 0.2s;
         }
-
-        .card-container {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .card {
-            background: white;
-            flex: 1;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
-        .card img {
-            width: 100%;
-            height: 140px;
-            object-fit: cover;
-        }
-        .card-body {
-            padding: 12px;
-        }
-        .card-title {
-            font-size: 13px;
-            font-weight: bold;
-            margin-bottom: 8px;
+        .close-btn:hover {
             color: #333;
         }
-        .card-price {
-            color: #e91e63;
-            font-weight: bold;
+
+        /* 第二層內部精美房型表格 */
+        .room-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .room-table th {
+            background-color: #f7f9fc;
+            padding: 12px;
+            font-size: 13px;
+            color: #666;
+            text-align: left;
+            border-bottom: 2px solid #eef2f5;
+        }
+        .room-table td {
+            padding: 16px 12px;
+            border-bottom: 1px solid #eef2f5;
             font-size: 14px;
+            vertical-align: middle;
+        }
+        .room-name-td {
+            font-weight: bold;
+            color: #1a2b3c;
+        }
+        .room-info-tag {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .room-book-btn {
+            background-color: #ff9000;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
         }
 
         /* ========================================================
@@ -103,14 +354,11 @@
             height: 100% !important;
         }
 
-        /* 強制降落盾牌：展開時暴力抹平平移 */
         .agent-wrapper-expanded-safe {
             transform: none !important;
         }
 
-        /* ========================================================
-           完全獨立的隱形操控手把（z-index 最高層級）
-           ======================================================== */
+        /* 完全獨立的隱形操控手把（z-index 最高層級） */
         #globalDragHandle {
             position: fixed !important;
             bottom: 20px !important;
@@ -126,7 +374,6 @@
             will-change: transform;
         }
 
-        /* 當滑鼠抓著拖曳時，手把瞬間變全螢幕，防止滑鼠滑出界而漏抓閃爍 */
         #globalDragHandle.dragging-active {
             top: 0 !important;
             left: 0 !important;
@@ -137,7 +384,6 @@
             right: auto !important;
         }
 
-        /* 大面板開啟時，強行將手把物理體積化為烏有，徹底關閉大視窗拖曳能力 */
         #globalDragHandle.drag-disabled-safe {
             width: 0px !important;
             height: 0px !important;
@@ -173,12 +419,108 @@
 </head>
 <body>
 
-    <h1>Welcome to My Personal Website!</h1>
-    <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
+    <header class="trip-header">
+        <div class="trip-logo" onclick="window.location.reload()">💥 Trip.com 探險舞台</div>
+        <ul class="trip-nav">
+            <li class="active">酒店訂房</li>
+            <li>機票比價</li>
+            <li>火車票</li>
+            <li>旅遊攻略</li>
+            <li>機＋酒特惠</li> </ul>
+        <div style="font-size: 14px; font-weight: bold;">歡迎體驗第二層深度劃詞</div>
+    </header>
 
-    <p style="background: #fff; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; font-size: 16px;">
-        💡 測試功能專用文字：你可以用滑鼠圈選這段文字中的任何部分（例如「日本三大花火大會」或「想看長岡煙火」），放開滑鼠後旁邊會自動跳出一個 Send 按鈕，點擊就能直接把文字發送給 AI 探險家喔！
-    </p>
+    <section class="hero-section">
+        <div class="search-container">
+            <div class="search-item">
+                <label>目的地</label>
+                <input type="text" id="destInput" value="東京, 日本" placeholder="城市、景點或酒店..." />
+            </div>
+            <div class="search-item">
+                <label>入住日期</label>
+                <input type="date" id="checkInInput" value="2026-07-15" />
+            </div>
+            <div class="search-item">
+                <label>退房日期</label>
+                <input type="date" id="checkOutInput" value="2026-07-20" />
+            </div>
+            <div class="search-item">
+                <label>人數與客房</label>
+                <select>
+                    <option>1 間客房, 2 位成人</option>
+                    <option>1 間客房, 1 位成人</option>
+                    <option>2 間客房, 4 位成人</option>
+                </select>
+            </div>
+            <button class="search-btn" onclick="alert('訂房系統動態查價成功！已過濾目前空房狀況。')">搜尋酒店</button>
+        </div>
+    </section>
+
+    <main class="main-content">
+        <div class="section-title">🔥 熱門查價結果推薦 (點擊「查看詳情」可點開第二層網頁)</div>
+        
+        <div class="hotel-list">
+            <div class="hotel-card">
+                <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500" class="hotel-img" alt="飯店">
+                <div class="hotel-info">
+                    <div class="hotel-header">
+                        <div>
+                            <h3 class="hotel-name">東京精選豪華希爾頓酒店 (Hilton Tokyo)</h3>
+                            <span class="hotel-stars">★★★★★</span>
+                        </div>
+                        <span class="hotel-badge">免費取消</span>
+                    </div>
+                    <p class="hotel-desc">
+                        位於新宿中心地帶，直通地鐵站。步行即可達新宿中央公園。房間內可飽覽東京鐵塔與絢麗夜景。提供頂級日式溫泉大浴場、免費高速 Wi-Fi 以及星級主廚早午餐，是家庭旅遊與商務出差的頂級奢華首選。
+                    </p>
+                    <div class="hotel-footer">
+                        <div class="hotel-rating-box">
+                            <span class="rating-score">4.8 / 5</span>
+                            <span class="rating-text">傑出 (1,240條真實評價)</span>
+                        </div>
+                        <div class="hotel-price-action">
+                            <div class="hotel-price-box">
+                                <div class="price-currency">每晚每間</div>
+                                <div class="price-amount">TWD 6,800</div>
+                                <div class="price-tax">含稅金及服務費</div>
+                            </div>
+                            <button class="view-detail-btn" onclick="openSecondLevel('hilton')">查看詳情</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hotel-card">
+                <img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=500" class="hotel-img" alt="飯店">
+                <div class="hotel-info">
+                    <div class="hotel-header">
+                        <div>
+                            <h3 class="hotel-name">京都傳統町家溫泉旅館 (Kyoto Onsen Ryokan)</h3>
+                            <span class="hotel-stars">★★★★</span>
+                        </div>
+                        <span class="hotel-badge">附精緻懷石早餐</span>
+                    </div>
+                    <p class="hotel-desc">
+                        本溫泉旅館擁有百年歷史，鎔鑄古風。完美保留日式塌塌米庭園景致。館內提供天然白絹無色溫泉大浴場，晚餐可享用當季嚴選黑毛和牛懷石料理。緊鄰古色古香的巡禮線路，讓您深度體驗京都之美。
+                    </p>
+                    <div class="hotel-footer">
+                        <div class="hotel-rating-box">
+                            <span class="rating-score">4.6 / 5</span>
+                            <span class="rating-text">極好 (890條真實評價)</span>
+                        </div>
+                        <div class="hotel-price-action">
+                            <div class="hotel-price-box">
+                                <div class="price-currency">每晚每間</div>
+                                <div class="price-amount">TWD 8,200</div>
+                                <div class="price-tax">不含溫泉稅</div>
+                            </div>
+                            <button class="view-detail-btn" onclick="openSecondLevel('ryokan')">查看詳情</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <div class="agent-wrapper" id="agentContainer">
         <sv-agent
@@ -193,34 +535,17 @@
 
     <button id="textSendBadge">🚀 Send to AI</button>
 
+
     <div class="itinerary-popup" id="itineraryWindow">
         <span class="close-btn" id="closeItineraryBtn">&times;</span>
-        <h2>想看日本三大花火大會 (3)</h2>
-        <p style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; font-size: 15px; line-height: 1.5;">
-            如果你想看日本三大花火大會之一的長岡煙火，現在有不同的行程可以選擇，包括一日直達A區觀賞席、兩天一夜B區觀賞席加溫泉住宿，還有三天的彌彥神社巡禮 and 煙火體驗，讓你輕鬆享受壯觀的煙火盛會。
-        </p>
-        
-        <div class="card-container">
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1533105079780-92b9be482077?w=500" alt="煙火">
-                <div class="card-body">
-                    <div class="card-title">【保證有位】日本三大花火長岡煙火A區觀賞 | 直達會場接駁</div>
-                    <div class="card-price">TWD 5,500 起</div>
-                </div>
+        <div id="secondLevelContent">
             </div>
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500" alt="煙火">
-                <div class="card-body">
-                    <div class="card-title">【保證有位】日本三大花火長岡煙火B區觀賞席 | 市區散策 + ...</div>
-                    <div class="card-price">TWD 12,500 起</div>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <script>
+    <script {__rule__:"STRICT_COMPLETION"}>
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
+        const secondLevelContent = document.getElementById('secondLevelContent');
         const agentEl = document.getElementById('perxonaAgent');
         const agentContainer = document.getElementById('agentContainer');
         const dragHandle = document.getElementById('globalDragHandle');
@@ -232,7 +557,7 @@
         let lastY = 0;
         let selectedTextStore = ""; 
 
-        // 智慧型行程視窗平行對齊演算法
+        // 智慧型第二層視窗平行對齊演算法 (完美的版面並列)
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
             const gapX = 15;
@@ -245,27 +570,84 @@
             itineraryWindow.style.height = desiredHeight + 'px';
         }
 
-        // 方案 B 全域監聽
-        window.addEventListener('click', (event) => {
-            const path = event.composedPath();
-            const hasClickedCucumber = path.some(element => {
-                return element.textContent && element.textContent.trim() === '當季小黃瓜照片';
-            });
-            if (hasClickedCucumber) {
-                forceResetToDefaultCorner();
-                itineraryWindow.style.display = 'block';
-                setTimeout(matchAgentPosition, 120);
-                event.stopPropagation(); 
-            }
-        });
+        // ========================================================
+        // 💡 核心功能：動態生成並點開第二層網頁資料
+        // ========================================================
+        const secondLevelData = {
+            hilton: `
+                <h2 style="color:#1a2b3c;margin-top:0;">東京精選豪華希爾頓酒店 - 房型查價詳情</h2>
+                <p style="color:#666;font-size:14px;">入住日期：2026-07-15 ～ 2026-07-20（5晚）</p>
+                <div style="background:#f8f9fa;padding:12px;border-radius:8px;font-size:13px;color:#555;margin-bottom:15px;">
+                    💡 <b>深度探險提示：</b>您可以自由圈選下方表格中的任何細節文字（例如「高級大床房」或「含雙人精緻自助早午餐」），同樣會跳出發送按鈕喔！
+                </div>
+                <table class="room-table">
+                    <tr>
+                        <th>房型說明</th>
+                        <th>旅客人數</th>
+                        <th>今日房價</th>
+                        <th>預訂狀態</th>
+                    </tr>
+                    <tr>
+                        <td class="room-name-td">高級大床房 (Superior King Room)<div class="room-info-tag">1張特大床 | 35平方公尺 | 禁菸</div></td>
+                        <td>👤👤</td>
+                        <td style="color:#ff5a5f;font-weight:bold;">TWD 6,800 /晚</td>
+                        <td><button class="room-book-btn" onclick="alert('房間成功加入購物車！')">預訂</button></td>
+                    </tr>
+                    <tr>
+                        <td class="room-name-td">豪華雙床房 (Deluxe Twin Resort)<div class="room-info-tag">2張單人床 | 40平方公尺 | 含雙人精緻自助早午餐</div></td>
+                        <td>👤👤</td>
+                        <td style="color:#ff5a5f;font-weight:bold;">TWD 7,500 /晚</td>
+                        <td><button class="room-book-btn" onclick="alert('房間成功加入購物車！')">預訂</button></td>
+                    </tr>
+                </table>
+            `,
+            ryokan: `
+                <h2 style="color:#1a2b3c;margin-top:0;">京都傳統町家溫泉旅館 - 房型與方案選擇</h2>
+                <p style="color:#666;font-size:14px;">入住日期：2026-07-15 ～ 2026-07-20（5晚）</p>
+                <div style="background:#f8f9fa;padding:12px;border-radius:8px;font-size:13px;color:#555;margin-bottom:15px;">
+                    💡 <b>深度探險提示：</b>本網頁支援多層級同步劃詞，圈選文字直接一槍直發！
+                </div>
+                <table class="room-table">
+                    <tr>
+                        <th>方案與榻榻米規格</th>
+                        <th>旅客人數</th>
+                        <th>今日房價</th>
+                        <th>預訂狀態</th>
+                    </tr>
+                    <tr>
+                        <td class="room-name-td">標準日式客房 (Standard Washitsu)<div class="room-info-tag">8疊塌塌米 | 庭園景觀 | 純住宿方案</div></td>
+                        <td>👤👤</td>
+                        <td style="color:#ff5a5f;font-weight:bold;">TWD 8,200 /晚</td>
+                        <td><button class="room-book-btn" onclick="alert('傳統町家房間成功加入購物車！')">預訂</button></td>
+                    </tr>
+                    <tr>
+                        <td class="room-name-td">嚴選溫泉半露天風呂天客房<div class="room-info-tag">12疊塌塌米 | 私人半露天風呂 | 含一泊二食頂級黑毛和牛懷石料理</div></td>
+                        <td>👤👤👤</td>
+                        <td style="color:#ff5a5f;font-weight:bold;">TWD 13,400 /晚</td>
+                        <td><button class="room-book-btn" onclick="alert('頂級溫泉客房成功加入購物車！')">預訂</button></td>
+                    </tr>
+                </table>
+            `
+        };
+
+        function openSecondLevel(hotelKey) {
+            // 1. 先強制作業一律先回歸右下角初始原點
+            forceResetToDefaultCorner();
+            
+            // 2. 注入對應飯店的第二層精美 HTML 結構
+            secondLevelContent.innerHTML = secondLevelData[hotelKey];
+            
+            // 3. 展現第二層視窗並對齊
+            itineraryWindow.style.display = 'block';
+            setTimeout(matchAgentPosition, 120);
+        }
 
         closeItineraryBtn.addEventListener('click', () => {
             itineraryWindow.style.display = 'none';
         });
 
-        window.addEventListener('resize', matchAgentPosition);
 
-        // 全域選取文字監聽
+        // 全域選取文字監聽 (第一層與第二層視窗內通通 100% 完美支援)
         window.addEventListener('mouseup', (e) => {
             if (e.target === textSendBadge || e.target === dragHandle) return;
             const selection = window.getSelection();
@@ -279,18 +661,16 @@
             }
         });
 
-        // 💡 【終極核心新邏輯】：全網頁最高等級點擊攔截盾牌
-        // 只要使用者點擊了「任何不是 Send to AI 按鈕本身」的地方，一律秒殺文字選取與按鈕！
+        // 點擊其他任何地方一律取消選字
         window.addEventListener('mousedown', (e) => {
-            // 如果點擊的目標不是我們的快速按鈕本體
             if (e.target !== textSendBadge) {
-                textSendBadge.style.display = 'none'; // 隱藏按鈕
-                selectedTextStore = "";               // 清空暫存
-                window.getSelection().removeAllRanges(); // 100% 強制拔掉網頁上反藍的選取外殼
+                textSendBadge.style.display = 'none'; 
+                selectedTextStore = "";               
+                window.getSelection().removeAllRanges(); 
             }
         });
 
-        // 按下直發按鈕
+        // 按下快速直發按鈕
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
@@ -340,11 +720,6 @@
                 agentContainer.classList.add('agent-wrapper-expanded-safe');
                 dragHandle.classList.add('drag-disabled-safe'); 
                 dragHandle.style.transform = 'none';
-            } else {
-                if (!isDragging && currentX === 0 && currentY === 0) {
-                    agentContainer.classList.remove('agent-wrapper-expanded-safe');
-                    dragHandle.classList.remove('drag-disabled-safe');
-                }
             }
         });
         if (agentEl) {
