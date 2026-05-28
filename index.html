@@ -103,9 +103,12 @@
             height: 100% !important;
         }
 
-        /* ========================================================
-           完全獨立的隱形操控手把（z-index 極限霸道層級）
-           ======================================================== */
+        /* 強制降落盾牌：展開時暴力抹平平移 */
+        .agent-wrapper-expanded-safe {
+            transform: none !important;
+        }
+
+        /* 完全獨立的隱形操控手把（z-index 最高層級） */
         #globalDragHandle {
             position: fixed !important;
             bottom: 20px !important;
@@ -132,9 +135,7 @@
             right: auto !important;
         }
 
-        /* ========================================================
-           選取文字後浮現的 "Send" 按鈕樣式
-           ======================================================== */
+        /* 選取文字後浮現的 "Send" 按鈕樣式 */
         #textSendBadge {
             display: none;
             position: fixed;
@@ -207,7 +208,7 @@
         </div>
     </div>
 
-    <script>
+    <script {__rule__:"STRICT_COMPLETION"}>
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
         const agentEl = document.getElementById('perxonaAgent');
@@ -221,34 +222,25 @@
         let lastY = 0;
         let selectedTextStore = ""; 
 
-        // ========================================================
         // 智慧型行程視窗平行對齊演算法
-        // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
-
             const gapX = 15;
             const expandedAgentWidth = 400; 
-            
             itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
             itineraryWindow.style.left = 'auto';
-
             const desiredTop = 80;  
             const desiredHeight = window.innerHeight - desiredTop - 120; 
-
             itineraryWindow.style.top = desiredTop + 'px';
             itineraryWindow.style.height = desiredHeight + 'px';
         }
 
-        // ========================================================
         // 方案 B 全域監聽
-        // ========================================================
         window.addEventListener('click', (event) => {
             const path = event.composedPath();
             const hasClickedCucumber = path.some(element => {
                 return element.textContent && element.textContent.trim() === '當季小黃瓜照片';
             });
-
             if (hasClickedCucumber) {
                 forceResetToDefaultCorner();
                 itineraryWindow.style.display = 'block';
@@ -263,16 +255,11 @@
 
         window.addEventListener('resize', matchAgentPosition);
 
-
-        // ========================================================
-        // 全域滑鼠選取文字監聽
-        // ========================================================
+        // 全域選取文字
         window.addEventListener('mouseup', (e) => {
             if (e.target === textSendBadge || e.target === dragHandle) return;
-
             const selection = window.getSelection();
             const selectedText = selection.toString().trim();
-
             if (selectedText.length > 0 && !isDragging) {
                 selectedTextStore = selectedText; 
                 textSendBadge.style.left = `${e.clientX - 40}px`;
@@ -283,25 +270,22 @@
             }
         });
 
-        // 點擊直發按鈕時，無論拉到哪裡，強制作業一律先回歸右下角
+        // 按下直發按鈕
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
-
             if (!selectedTextStore) return;
 
-            if (agentEl && agentEl.offsetHeight < 150) {
-                forceResetToDefaultCorner();
-                dragHandle.style.pointerEvents = 'none';
-                
-                const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                if (clickTarget) clickTarget.click();
-                
-                window.dispatchEvent(new Event('resize'));
-                setTimeout(matchAgentPosition, 120);
-                
-                setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
-            }
+            forceResetToDefaultCorner();
+            agentContainer.classList.add('agent-wrapper-expanded-safe');
+            dragHandle.style.pointerEvents = 'none';
+            
+            const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
+            if (clickTarget) clickTarget.click();
+            
+            window.dispatchEvent(new Event('resize'));
+            setTimeout(matchAgentPosition, 120);
+            setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
 
             setTimeout(() => {
                 if (agentEl && typeof agentEl.sendQuestion === 'function') {
@@ -309,6 +293,34 @@
                 }
             }, 300); 
         });
+
+        // 全域捕捉點擊大叔細胞
+        window.addEventListener('click', (e) => {
+            const path = e.composedPath();
+            const clickedOnAgent = path.some(el => el.id === 'perxonaAgent' || el.tagName === 'SV-AGENT');
+            
+            if (clickedOnAgent) {
+                if (agentEl && agentEl.offsetHeight < 150) {
+                    forceResetToDefaultCorner();
+                    agentContainer.classList.add('agent-wrapper-expanded-safe');
+                    dragHandle.style.transform = 'none';
+                }
+            }
+        });
+
+        // 💡 結構監聽守護者修正版：開大視窗時鎖死，關大視窗時「秒脫盾牌」解鎖拖曳功能！
+        const observer = new MutationObserver(() => {
+            if (agentEl && agentEl.offsetHeight > 150) {
+                agentContainer.classList.add('agent-wrapper-expanded-safe');
+                dragHandle.style.transform = 'none';
+            } else {
+                // 🎯 關鍵修正：一旦大視窗關閉了（高度縮回小圓貼），立刻解除物理限制，讓拖曳重獲自由！
+                agentContainer.classList.remove('agent-wrapper-expanded-safe');
+            }
+        });
+        if (agentEl) {
+            observer.observe(agentEl, { attributes: true, style: true, childList: true, subtree: true });
+        }
 
 
         // ========================================================
@@ -340,7 +352,6 @@
 
             agentContainer.style.transition = 'none';
             dragHandle.style.transition = 'none';
-
             dragHandle.classList.add('dragging-active');
             
             const transformStyle = `translate(${lastX}px, ${lastY}px)`;
@@ -353,7 +364,6 @@
 
         function doDrag(e) {
             if (!isDragging) return;
-            
             const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
             const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
 
@@ -387,32 +397,28 @@
             dragHandle.classList.remove('dragging-active');
 
             if (!hasMoved) {
-                // 💡 智慧點擊修正：只要點擊頭貼任何地方，一律先「瞬間強制歸位」到右下角
                 forceResetToDefaultCorner();
+                agentContainer.classList.add('agent-wrapper-expanded-safe');
                 
-                // 暫時鎖死手把事件，防止連擊引發座標跳動
                 dragHandle.style.pointerEvents = 'none'; 
                 
-                // 歸位完畢後，精準朝右下角原生小圓貼的原生點發射 Click，100% 呼叫 Perxona 展開大視窗
                 setTimeout(() => {
                     const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
                     if (clickTarget) {
                         clickTarget.click(); 
                     }
-                    
                     window.dispatchEvent(new Event('resize'));
 
                     setTimeout(() => {
                         dragHandle.style.pointerEvents = 'auto'; 
                     }, 200);
-                }, 80);
+                }, 40);
 
-                setTimeout(matchAgentPosition, 120);
+                setTimeout(matchAgentPosition, 100);
                 
             } else {
                 lastX = currentX;
                 lastY = currentY;
-                
                 const finalStyle = `translate(${lastX}px, ${lastY}px)`;
                 agentContainer.style.transform = finalStyle;
                 dragHandle.style.transform = finalStyle;
