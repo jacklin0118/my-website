@@ -5,81 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Personal Website</title>
     <style>
-        /* ========================================================
-           💡 核心修正：強迫 html & body 變成「事件穿透層」，滑鼠可以直接滾動背景
-           ======================================================== */
-        html, body {
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            pointer-events: none !important; /* 👈 滑鼠所有事件直接穿透下去 */
-            overflow: hidden; /* 隱藏 index 原生大視窗的滾動條，只留背景網頁的 */
-        }
-
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background-color: #f4f4f9;
             color: #333;
             text-align: center;
         }
-
-        /* 讓原本的標題文字變成浮空裝飾，不擋滑鼠 */
-        h1 { color: #2c3e50; margin-top: 40px; position: relative; z-index: 1; }
-        p { font-size: 18px; max-width: 600px; margin: 20px auto; position: relative; z-index: 1; }
-
-        /* ========================================================
-           終極全螢幕網頁背景（恢復實體，讓它100%接收穿透下來的滾動與點擊）
-           ======================================================== */
-        #bgWebframe {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            border: none;
-            z-index: -1; 
-            background: #f4f4f9;
-            pointer-events: auto !important; /* 👈 100% 接收滑鼠的滾動與點擊 */
-        }
-
-        /* ========================================================
-           左上角網址控制器（恢復實體，否則會點不到輸入框）
-           ======================================================== */
-        .url-controller {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 100030; 
-            display: flex;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 10px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            backdrop-filter: blur(5px);
-            pointer-events: auto !important; /* 👈 恢復實體 */
-        }
-        .url-controller input {
-            width: 280px;
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-        }
-        .url-controller button {
-            background-color: #2c3e50;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .url-controller button:hover {
-            background-color: #34495e;
-        }
+        h1 { color: #2c3e50; }
+        p { font-size: 18px; max-width: 600px; margin: 20px auto; }
 
         /* ========================================================
            行程卡片視窗 (固定對齊右下角原生預設面板的左側)
@@ -95,7 +30,12 @@
             box-sizing: border-box;
             text-align: left;
             overflow-y: auto;
-            pointer-events: auto !important; /* 👈 恢復實體，讓卡片內可以正常滾動與點擊 */
+            
+            width: 55vw;
+            max-width: 820px;
+            min-width: 450px;
+            
+            animation: fadeIn 0.3s ease-out; 
         }
 
         @keyframes fadeIn {
@@ -145,7 +85,7 @@
         }
 
         /* ========================================================
-           智慧型雙向獨立移動舞台
+           智慧型雙向獨立移動舞台：用來承載 Agent
            ======================================================== */
         .agent-wrapper {
             position: fixed !important;
@@ -155,7 +95,6 @@
             height: 85px !important;
             z-index: 99999;
             will-change: transform;
-            pointer-events: auto !important; /* 👈 恢復實體，小頭貼才點得到 */
         }
 
         sv-agent {
@@ -165,7 +104,7 @@
         }
 
         /* ========================================================
-           完全獨立的隱形操控手把
+           💥 核心修正：將手把提到全瀏覽器最高階層，強行壓死 3D Canvas
            ======================================================== */
         #globalDragHandle {
             position: fixed !important;
@@ -177,12 +116,12 @@
             background: rgba(0, 0, 0, 0) !important;
             border: none !important;
             cursor: move !important;
-            z-index: 100010 !important;
+            z-index: 2147483647 !important; /* 👈 瀏覽器圖層終極極限值，誰都擋不住它 */
             touch-action: none !important;
             will-change: transform;
-            pointer-events: auto !important; /* 👈 恢復實體，才能抓著拖曳 */
         }
 
+        /* 當滑鼠抓著拖曳時，手把瞬間變全螢幕，防止滑鼠滑出界而漏抓閃爍 */
         #globalDragHandle.dragging-active {
             top: 0 !important;
             left: 0 !important;
@@ -194,7 +133,7 @@
         }
 
         /* ========================================================
-           選取文字後浮現的 "Send" 按鈕
+           選取文字後浮現的 "Send" 按鈕樣式
            ======================================================== */
         #textSendBadge {
             display: none;
@@ -210,7 +149,6 @@
             z-index: 100020; 
             border: none;
             transition: transform 0.1s ease;
-            pointer-events: auto !important; /* 👈 恢復實體 */
         }
         #textSendBadge:hover {
             background-color: #34495e;
@@ -224,20 +162,12 @@
 </head>
 <body>
 
-    <div class="url-controller">
-        <input type="text" id="bgUrlInput" placeholder="輸入任何真實網址 (如 google.com)" />
-        <button id="setBgBtn">確定</button>
-    </div>
+    <h1>Welcome to My Personal Website!</h1>
+    <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
 
-    <iframe id="bgWebframe" src="https://www.openstreetmap.org"></iframe>
-
-    <div style="background: rgba(255,255,255,0.85); padding: 20px; border-radius: 16px; max-width: 650px; margin: 40px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.08); backdrop-filter: blur(3px); pointer-events: auto !important;">
-        <h1>Welcome to My Personal Website!</h1>
-        <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
-        <p style="background: #fff; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; font-size: 16px; margin: 0;">
-            💡 測試功能專用文字：你可以用滑鼠圈選這段文字中的任何部分（例如「日本三大花火大會」或「想看長岡煙火」），放開滑鼠後旁邊會自動跳出一個 Send 按鈕，點擊就能直接把文字發送給 AI 探險家喔！
-        </p>
-    </div>
+    <p style="background: #fff; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; font-size: 16px;">
+        💡 測試功能專用文字：你可以用滑鼠圈選這段文字中的任何部分（例如「日本三大花火大會」或「想看長岡煙火」），放開滑鼠後旁邊會自動跳出一個 Send 按鈕，點擊就能直接把文字發送給 AI 探險家喔！
+    </p>
 
     <div class="agent-wrapper" id="agentContainer">
         <sv-agent
@@ -277,17 +207,13 @@
         </div>
     </div>
 
-    <script>
+    <script {__rule__:"STRICT_COMPLETION"}>
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
         const agentEl = document.getElementById('perxonaAgent');
         const agentContainer = document.getElementById('agentContainer');
         const dragHandle = document.getElementById('globalDragHandle');
         const textSendBadge = document.getElementById('textSendBadge');
-        
-        const bgUrlInput = document.getElementById('bgUrlInput');
-        const setBgBtn = document.getElementById('setBgBtn');
-        const bgWebframe = document.getElementById('bgWebframe');
 
         let currentX = 0;
         let currentY = 0;
@@ -295,70 +221,23 @@
         let lastY = 0;
         let selectedTextStore = ""; 
 
-        // ========================================================
-        // 智慧逆向代理技術
-        // ========================================================
-        setBgBtn.addEventListener('click', () => {
-            let url = bgUrlInput.value.trim();
-            if (!url) return;
-
-            if (!/^https?:\/\//i.test(url)) {
-                url = 'https://' + url;
-            }
-
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-            
-            fetch(proxyUrl)
-                .then(response => {
-                    if (response.ok) return response.json();
-                    throw new Error('Network response was not ok.');
-                })
-                .then(data => {
-                    const htmlContent = data.contents;
-                    const baseUrl = url.endsWith('/') ? url : url + '/';
-                    const patchedHtml = htmlContent.replace(/<head>/i, `<head><base href="${baseUrl}">`);
-                    
-                    const blob = new Blob([patchedHtml], { type: 'text/html' });
-                    bgWebframe.src = URL.createObjectURL(blob);
-                })
-                .catch(err => {
-                    bgWebframe.src = url;
-                });
-        });
-
-        bgUrlInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') setBgBtn.click();
-        });
-
-
-        // ========================================================
-        // 維持原樣：智慧型行程視窗平行對齊演算法
-        // ========================================================
         function matchAgentPosition() {
             if (itineraryWindow.style.display !== 'block') return;
-
             const gapX = 15;
             const expandedAgentWidth = 400; 
-            
             itineraryWindow.style.right = (expandedAgentWidth + gapX) + 'px';
             itineraryWindow.style.left = 'auto';
-
             const desiredTop = 80;  
             const desiredHeight = window.innerHeight - desiredTop - 120; 
-
             itineraryWindow.style.top = desiredTop + 'px';
             itineraryWindow.style.height = desiredHeight + 'px';
         }
 
-        // ========================================================
-        // 維持原樣：方案 B 全域監聽
-        // ========================================================
         window.addEventListener('click', (event) => {
             const path = event.composedPath();
             const hasClickedCucumber = path.some(element => {
                 return element.textContent && element.textContent.trim() === '當季小黃瓜照片';
             });
-
             if (hasClickedCucumber) {
                 forceResetToDefaultCorner();
                 itineraryWindow.style.display = 'block';
@@ -373,16 +252,10 @@
 
         window.addEventListener('resize', matchAgentPosition);
 
-
-        // ========================================================
-        // 維持原樣：全域滑鼠選取文字監聽
-        // ========================================================
         window.addEventListener('mouseup', (e) => {
-            if (e.target === textSendBadge || e.target === bgUrlInput || e.target === setBgBtn) return;
-
+            if (e.target === textSendBadge || e.target === dragHandle) return;
             const selection = window.getSelection();
             const selectedText = selection.toString().trim();
-
             if (selectedText.length > 0 && !isDragging) {
                 selectedTextStore = selectedText; 
                 textSendBadge.style.left = `${e.clientX - 40}px`;
@@ -393,26 +266,19 @@
             }
         });
 
-        // 原生 sendQuestion 直發核心
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
-
             if (!selectedTextStore) return;
-
             if (agentEl && agentEl.offsetHeight < 150) {
                 forceResetToDefaultCorner();
                 dragHandle.style.pointerEvents = 'none';
-                
                 const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
                 if (clickTarget) clickTarget.click();
-                
                 window.dispatchEvent(new Event('resize'));
                 setTimeout(matchAgentPosition, 120);
-                
                 setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
             }
-
             setTimeout(() => {
                 if (agentEl && typeof agentEl.sendQuestion === 'function') {
                     agentEl.sendQuestion(selectedTextStore);
@@ -420,10 +286,6 @@
             }, 300); 
         });
 
-
-        // ========================================================
-        // 維持原樣：全域防滑出拖曳演算機制
-        // ========================================================
         let isDragging = false;
         let startX, startY;
         let hasMoved = false;
@@ -438,21 +300,19 @@
 
         function startDrag(e) {
             if (agentEl && agentEl.offsetHeight > 150) return;
-
             isDragging = true;
             hasMoved = false;
-
             const clientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
             const clientY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
-            
             startX = clientX;
             startY = clientY;
-
             agentContainer.style.transition = 'none';
             dragHandle.style.transition = 'none';
-
             dragHandle.classList.add('dragging-active');
-            dragHandle.style.transform = `translate(${lastX}px, ${lastY}px)`;
+            
+            const transformStyle = `translate(${lastX}px, ${lastY}px)`;
+            agentContainer.style.transform = transformStyle;
+            dragHandle.style.transform = transformStyle;
             
             if(e.cancelable) e.preventDefault();
             e.stopPropagation();
@@ -460,28 +320,21 @@
 
         function doDrag(e) {
             if (!isDragging) return;
-            
             const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
             const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
-
             const deltaX = clientX - startX;
             const deltaY = clientY - startY;
-
             if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
                 hasMoved = true;
             }
-
             currentX = lastX + deltaX;
             currentY = lastY + deltaY;
-
             const initialLeftBound = window.innerWidth - 105;
             const initialTopBound = window.innerHeight - 105;
-
             if (initialLeftBound + currentX < 0) currentX = -initialLeftBound;
             if (initialLeftBound + currentX > window.innerWidth - 85) currentX = window.innerWidth - 85 - initialLeftBound;
             if (initialTopBound + currentY < 0) currentY = -initialTopBound;
             if (initialTopBound + currentY > window.innerHeight - 85) currentY = window.innerHeight - 85 - initialTopBound;
-
             const transformStyle = `translate(${currentX}px, ${currentY}px)`;
             agentContainer.style.transform = transformStyle;
             dragHandle.style.transform = transformStyle;
@@ -490,32 +343,22 @@
         function endDrag() {
             if (!isDragging) return;
             isDragging = false;
-
             dragHandle.classList.remove('dragging-active');
-
             if (!hasMoved) {
                 forceResetToDefaultCorner();
                 dragHandle.style.pointerEvents = 'none'; 
-                
                 setTimeout(() => {
                     const clickTarget = document.elementFromPoint(window.innerWidth - 45, window.innerHeight - 45);
-                    if (clickTarget) {
-                        clickTarget.click(); 
-                    }
-                    
+                    if (clickTarget) clickTarget.click(); 
                     window.dispatchEvent(new Event('resize'));
-
                     setTimeout(() => {
                         dragHandle.style.pointerEvents = 'auto'; 
                     }, 200);
                 }, 80);
-
                 setTimeout(matchAgentPosition, 120);
-                
             } else {
                 lastX = currentX;
                 lastY = currentY;
-                
                 const finalStyle = `translate(${lastX}px, ${lastY}px)`;
                 agentContainer.style.transform = finalStyle;
                 dragHandle.style.transform = finalStyle;
