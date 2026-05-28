@@ -13,8 +13,61 @@
             color: #333;
             text-align: center;
         }
-        h1 { color: #2c3e50; }
-        p { font-size: 18px; max-width: 600px; margin: 20px auto; }
+        h1 { color: #2c3e50; position: relative; z-index: 1; }
+        p { font-size: 18px; max-width: 600px; margin: 20px auto; position: relative; z-index: 1; }
+
+        /* ========================================================
+           💡 新增：全螢幕動態網頁背景
+           ======================================================== */
+        #bgWebframe {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            z-index: -1; /* 鎖死在最底層 */
+            background: #f4f4f9;
+        }
+
+        /* ========================================================
+           💡 新增：左上角精緻網址輸入控制器
+           ======================================================== */
+        .url-controller {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100030; /* 確保在最頂層，點得到 */
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            backdrop-filter: blur(5px); /* 毛玻璃效果 */
+        }
+        .url-controller input {
+            width: 220px;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+        .url-controller button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .url-controller button:hover {
+            background-color: #34495e;
+        }
 
         /* ========================================================
            行程卡片視窗 (固定對齊右下角原生預設面板的左側)
@@ -56,6 +109,8 @@
             display: flex;
             gap: 15px;
             margin-top: 20px;
+            position: relative;
+            z-index: 1;
         }
         .card {
             background: white;
@@ -161,10 +216,17 @@
 </head>
 <body>
 
-    <h1>Welcome to My Personal Website!</h1>
-    <p>Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
+    <div class="url-controller">
+        <input type="text" id="bgUrlInput" placeholder="請貼上任何網址 (例如 www.google.com)" />
+        <button id="setBgBtn">確定</button>
+    </div>
 
-    <p style="background: #fff; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; font-size: 16px;">
+    <iframe id="bgWebframe" src=""></iframe>
+
+    <h1 style="position: relative; z-index: 1;">Welcome to My Personal Website!</h1>
+    <p style="position: relative; z-index: 1;">Hi, I am a beginner building my first web project. Feel free to talk to my AI assistant down in the corner!</p>
+
+    <p style="background: rgba(255,255,255,0.9); padding: 15px; border-radius: 8px; border: 1px dashed #ccc; font-size: 16px; position: relative; z-index: 1; max-width: 600px; margin: 20px auto;">
         💡 測試功能專用文字：你可以用滑鼠圈選這段文字中的任何部分（例如「日本三大花火大會」或「想看長岡煙火」），放開滑鼠後旁邊會自動跳出一個 Send 按鈕，點擊就能直接把文字發送給 AI 探險家喔！
     </p>
 
@@ -213,12 +275,41 @@
         const agentContainer = document.getElementById('agentContainer');
         const dragHandle = document.getElementById('globalDragHandle');
         const textSendBadge = document.getElementById('textSendBadge');
+        
+        // 背景更換元件
+        const bgUrlInput = document.getElementById('bgUrlInput');
+        const setBgBtn = document.getElementById('setBgBtn');
+        const bgWebframe = document.getElementById('bgWebframe');
 
         let currentX = 0;
         let currentY = 0;
         let lastX = 0;
         let lastY = 0;
         let selectedTextStore = ""; 
+
+        // ========================================================
+        // 💡 新增：更換背景動態網頁邏輯
+        // ========================================================
+        setBgBtn.addEventListener('click', () => {
+            let url = bgUrlInput.value.trim();
+            if (!url) return;
+
+            // 智慧型網址補全：如果使用者沒輸入 http/https，自動幫他補上
+            if (!/^https?:\/\//i.test(url)) {
+                url = 'https://' + url;
+            }
+
+            // 將底層 iframe 的 src 改成使用者輸入的網址
+            bgWebframe.src = url;
+        });
+
+        // 支援按 Enter 直接送出網址
+        bgUrlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                setBgBtn.click();
+            }
+        });
+
 
         // ========================================================
         // 維持原樣：智慧型行程視窗平行對齊演算法
@@ -267,7 +358,7 @@
         // 維持原樣：全域滑鼠選取文字監聽
         // ========================================================
         window.addEventListener('mouseup', (e) => {
-            if (e.target === textSendBadge) return;
+            if (e.target === textSendBadge || e.target === bgUrlInput || e.target === setBgBtn) return;
 
             const selection = window.getSelection();
             const selectedText = selection.toString().trim();
@@ -282,14 +373,13 @@
             }
         });
 
-        // 💡 終極王者直發：直接調用你測試成功的精準原生核心指令 sendQuestion
+        // 維持原樣：你最成功、引以為傲的原生 sendQuestion 直發核心
         textSendBadge.addEventListener('click', (e) => {
             e.stopPropagation(); 
             textSendBadge.style.display = 'none'; 
 
             if (!selectedTextStore) return;
 
-            // 1. 如果對話視窗還沒點開，先自動在右下角安全觸發點開它
             if (agentEl && agentEl.offsetHeight < 150) {
                 forceResetToDefaultCorner();
                 dragHandle.style.pointerEvents = 'none';
@@ -303,18 +393,16 @@
                 setTimeout(() => { dragHandle.style.pointerEvents = 'auto'; }, 200);
             }
 
-            // 💡 2. 完美的黃金一擊：直接灌入你測試成功的 sendQuestion 官方原生暗號
             setTimeout(() => {
                 if (agentEl && typeof agentEl.sendQuestion === 'function') {
-                    // 直接把選取的文字發射給小黑黑！
                     agentEl.sendQuestion(selectedTextStore);
                 }
-            }, 300); // 延遲 300ms 確保視窗徹底展開完畢，指令能被 100% 接收
+            }, 300); 
         });
 
 
         // ========================================================
-        // 維持原樣：全域防滑出拖曳演算機制 (一字未動，保持流暢)
+        // 維持原樣：全域防滑出拖曳演算機制
         // ========================================================
         let isDragging = false;
         let startX, startY;
