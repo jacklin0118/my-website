@@ -218,7 +218,7 @@
         </div>
     </div>
 
-    <script {__rule__:"STRICT_COMPLETION"}>
+    <script>
         const itineraryWindow = document.getElementById('itineraryWindow');
         const closeItineraryBtn = document.getElementById('closeItineraryBtn');
         const agentEl = document.getElementById('perxonaAgent');
@@ -276,10 +276,17 @@
                 textSendBadge.style.left = `${e.clientX - 40}px`;
                 textSendBadge.style.top = `${e.clientY - 40}px`;
                 textSendBadge.style.display = 'block';
-            } else {
-                textSendBadge.style.display = 'none'; 
-                selectedTextStore = "";               
-                selection.removeAllRanges();          
+            }
+        });
+
+        // 💡 【終極核心新邏輯】：全網頁最高等級點擊攔截盾牌
+        // 只要使用者點擊了「任何不是 Send to AI 按鈕本身」的地方，一律秒殺文字選取與按鈕！
+        window.addEventListener('mousedown', (e) => {
+            // 如果點擊的目標不是我們的快速按鈕本體
+            if (e.target !== textSendBadge) {
+                textSendBadge.style.display = 'none'; // 隱藏按鈕
+                selectedTextStore = "";               // 清空暫存
+                window.getSelection().removeAllRanges(); // 100% 強制拔掉網頁上反藍的選取外殼
             }
         });
 
@@ -315,7 +322,6 @@
             const clickedOnAgent = path.some(el => el.id === 'perxonaAgent' || el.tagName === 'SV-AGENT');
             
             if (clickedOnAgent) {
-                // 💡 智慧優化點一：當使用者直接點擊大叔本體（包含圖片），也立刻取消網頁文字選取
                 window.getSelection().removeAllRanges();
                 textSendBadge.style.display = 'none';
 
@@ -372,7 +378,6 @@
         function startDrag(e) {
             if ((agentEl && agentEl.offsetHeight > 150) || dragHandle.classList.contains('drag-disabled-safe')) return;
 
-            // 💡 智慧優化點二：當滑鼠或手指一摸到大叔的手把準備拖曳時，立刻取消網頁文字選取狀態
             window.getSelection().removeAllRanges();
             textSendBadge.style.display = 'none';
 
